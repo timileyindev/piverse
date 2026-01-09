@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Global Scrollbar - Terminal Style */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0f0e14;
+    border-left: 1px solid #2b2839;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #3713ec;
+    border-radius: 0px; /* Square for strict terminal feel */
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #5634ff;
+  }
+
+  /* Support for Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3713ec #0f0e14;
+  }
+}
+
+@layer utilities {
+  .glow-text {
+    text-shadow: 0 0 10px rgba(55, 19, 236, 0.6);
+  }
+
+  /* Additional terminal scanline utility if needed, fitting within Tailwind layers */
+  .scanline-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0),
+      rgba(255, 255, 255, 0) 50%,
+      rgba(0, 0, 0, 0.1) 50%,
+      rgba(0, 0, 0, 0.1)
+    );
+    background-size: 100% 4px;
+  }
+}

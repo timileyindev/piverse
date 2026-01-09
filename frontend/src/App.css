@@ -1,0 +1,29 @@
+/* Custom scrollbar for the terminal feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #121118;
+}
+::-webkit-scrollbar-thumb {
+  background: #3713ec;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a0eb5;
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(55, 19, 236, 0.5);
+}
+.scanline {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.1)
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+}

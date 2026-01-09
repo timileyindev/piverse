@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "programs/piverse"
+]
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+
+
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

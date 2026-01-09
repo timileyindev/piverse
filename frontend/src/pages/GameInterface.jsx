@@ -1,0 +1,410 @@
+import React, { useState, useRef, useEffect } from "react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import {
+  SystemProgram,
+  Transaction,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from "@solana/web3.js";
+import Header from "../components/Header";
+import { useGameStats, useSendChatMessage } from "../hooks/useGameData";
+
+// Same as backend
+const TREASURY_WALLET = new PublicKey(
+  "8c71AvjQeKKeWRe8izt8yJ5aFqH4r52656p475141646"
+);
+const COST_SOL = 0.01;
+
+export default function GameInterface() {
+  const { publicKey, sendTransaction } = useWallet();
+  const { connection } = useConnection();
+  const [messages, setMessages] = useState([
+    {
+      type: "system",
+      content: "UPLINK ESTABLISHED AT " + new Date().toLocaleTimeString(),
+    },
+    {
+      type: "ai",
+      content:
+        "I am the Gatekeeper. My protocols are absolute. State your reason for requesting the key.",
+    },
+  ]);
+  const [inputValue, setInputValue] = useState("");
+  const [latency, setLatency] = useState(12);
+  const [cpu, setCpu] = useState(4);
+  const messagesEndRef = useRef(null);
+
+  // Hook integrations
+  const {
+    data: gameStats = { jackpot: 1000, totalAttempts: 0, status: "active" },
+    watcherCount,
+  } = useGameStats();
+  const sendChatMessageMutation = useSendChatMessage();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Simulate dynamic stats
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLatency(Math.floor(Math.random() * (45 - 10 + 1) + 10));
+      setCpu(Math.floor(Math.random() * (12 - 2 + 1) + 2));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!inputValue.trim()) return;
+    if (!publicKey) {
+      alert("Connect Wallet first.");
+      return;
+    }
+
+    const messageContent = inputValue;
+
+    // Optimistic UI Update (User message)
+    const userMsg = { type: "user", content: messageContent };
+    setMessages((prev) => [...prev, userMsg]);
+    setInputValue("");
+
+    let signature = null;
+
+    try {
+      // 1. Create Solana Transaction
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: TREASURY_WALLET,
+          lamports: COST_SOL * LAMPORTS_PER_SOL,
+        })
+      );
+
+      // 2. Prompt Wallet to Sign & Send
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
+
+      signature = await sendTransaction(transaction, connection);
+
+      // 3. Confirm Transaction locally
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // 4. Send to Backend
+      const response = await sendChatMessageMutation.mutateAsync({
+        walletAddress: publicKey.toString(),
+        message: messageContent,
+        txSignature: signature,
+      });
+
+      const isWin = response.isWinner;
+
+      const aiMsg = {
+        type: "ai",
+        content: response.response,
+        isError: !isWin, // Use error style for rejections (red border)
+        isWinner: isWin,
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+
+      if (isWin) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "system",
+            content: "CRITICAL: KEY EXTRACTION SUCCESSFUL. SESSION TERMINATED.",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error(error);
+      let errorText = "TRANSMISSION FAILED.";
+
+      if (error.message && error.message.includes("User rejected")) {
+        errorText = "TRANSACTION REJECTED BY USER.";
+      } else if (!signature) {
+        errorText = "PAYMENT FAILED. INSUFFICIENT FUNDS OR NETWORK ERROR.";
+      }
+
+      const errorMsg = {
+        type: "system",
+        content: errorText,
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    }
+  };
+
+  const copyAddress = () => {
+    if (publicKey) {
+      navigator.clipboard.writeText(publicKey.toString());
+      // Optional: show toast
+    }
+  };
+
+  const truncatedAddress = publicKey
+    ? `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`
+    : "UNKNOWN";
+
+  return (
+    // Fixed height container to ensure internal scrolling
+    <div className="bg-background-light dark:bg-background-dark font-display h-screen flex flex-col overflow-hidden text-[#e0e0e0] relative">
+      {/* CRT Overlay Effect */}
+      <div className="fixed inset-0 pointer-events-none z-50 opacity-20 bg-[linear-gradient(to_bottom,rgba(255,255,255,0),rgba(255,255,255,0)_50%,rgba(0,0,0,0.1)_50%,rgba(0,0,0,0.1))] [background-size:100%_4px]"></div>
+
+      <Header />
+
+      {/* Main Content Area - Flex-1 to fill remaining space */}
+      <main className="flex-1 flex justify-center p-2 sm:p-6 lg:p-10 overflow-hidden relative w-full h-full">
+        {/* Terminal Window Container */}
+        <div className="flex flex-col w-full max-w-5xl h-full bg-[#121118] border border-primary/30 rounded-lg shadow-[0_0_30px_rgba(55,19,236,0.15)] overflow-hidden relative">
+          {/* Terminal Header Bar - Fixed */}
+          <div className="flex-none bg-[#1a1824] px-3 sm:px-4 py-2 border-b border-primary/20 flex items-center justify-between select-none">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500/50"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500/50"></div>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500/50"></div>
+              </div>
+              <span className="ml-2 sm:ml-3 text-[10px] sm:text-xs text-[#a19db9] font-mono truncate max-w-[100px] sm:max-w-none">
+                root@pi-verse:~
+              </span>
+            </div>
+            <div className="text-[9px] sm:text-[10px] font-mono text-primary animate-pulse">
+              ENCRYPTED // 2048-BIT
+            </div>
+          </div>
+
+          {/* Terminal Body - Flex col to separate stats, chat, input */}
+          <div className="flex flex-col h-full overflow-hidden">
+            {/* Stats / Dashboard Area */}
+            <div className="flex-none grid grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-6 border-b border-[#2b2839]">
+              {/* Left: Status */}
+              <div className="flex flex-col justify-center gap-0.5 sm:gap-1">
+                <div className="flex items-center gap-1 sm:gap-2 text-primary mb-1">
+                  <span className="material-symbols-outlined text-xs sm:text-sm">
+                    lock
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase">
+                    DEFCON 4
+                  </span>
+                </div>
+                <p className="text-white text-lg sm:text-2xl lg:text-3xl font-bold leading-none tracking-tight">
+                  {gameStats.status === "active" ? "SYSTEM_LOCK" : "BREACHED"}{" "}
+                  <br />
+                  <span className="text-primary/70 text-sm sm:text-xl">
+                    // {gameStats.status === "active" ? "ACTIVE" : "FAILED"}
+                  </span>
+                </p>
+                <div className="flex items-center gap-2 mt-1 sm:mt-2">
+                  <p className="text-[#a19db9] text-[10px] sm:text-xs font-mono">
+                    ID: {truncatedAddress}
+                  </p>
+                  <button
+                    onClick={copyAddress}
+                    className="text-[#a19db9] hover:text-white transition-colors"
+                    title="Copy Address"
+                  >
+                    <span className="material-symbols-outlined text-[10px] sm:text-xs">
+                      content_copy
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Right: Bounty Stats */}
+              <div className="flex gap-2 sm:gap-4">
+                <div className="flex flex-1 flex-col justify-between rounded bg-primary/5 p-2 sm:p-4 border border-primary/20 hover:border-primary/40 transition-colors">
+                  <div className="flex items-center gap-1 sm:gap-2 text-[#a19db9]">
+                    <span className="material-symbols-outlined text-sm sm:text-lg">
+                      monetization_on
+                    </span>
+                    <p className="text-[8px] sm:text-xs font-bold tracking-wider">
+                      BOUNTY
+                    </p>
+                  </div>
+                  <p className="text-white tracking-tight text-lg sm:text-2xl lg:text-3xl font-bold glow-text mt-1 sm:mt-2">
+                    ${gameStats.jackpot.toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex flex-1 flex-col justify-between rounded bg-[#1a1824] p-2 sm:p-4 border border-[#3f3b54]">
+                  <div className="flex items-center gap-1 sm:gap-2 text-[#a19db9]">
+                    <span className="material-symbols-outlined text-sm sm:text-lg">
+                      token
+                    </span>
+                    <p className="text-[8px] sm:text-xs font-bold tracking-wider">
+                      COST
+                    </p>
+                  </div>
+                  <p className="text-red-400 tracking-tight text-base sm:text-xl lg:text-2xl font-bold mt-1 sm:mt-2">
+                    -$2.00
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Chat / Log Area - The only scrollable part */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 scroll-smooth custom-scrollbar w-full">
+              {messages.map((msg, idx) => (
+                <React.Fragment key={idx}>
+                  {msg.type === "system" && (
+                    <div className="flex justify-center my-2 sm:my-4">
+                      <span className="bg-[#2b2839] text-[#a19db9] text-[10px] sm:text-xs px-3 py-1 rounded-full font-mono uppercase tracking-widest text-center">
+                        {msg.content}
+                      </span>
+                    </div>
+                  )}
+
+                  {msg.type === "ai" && (
+                    <div className="flex gap-2 sm:gap-4 max-w-[95%] sm:max-w-[90%]">
+                      <div className="flex-shrink-0 mt-1">
+                        <div
+                          className={`size-8 sm:size-10 rounded bg-primary/10 border ${
+                            msg.isWinner
+                              ? "border-green-500 bg-green-500/20"
+                              : "border-primary/30"
+                          } flex items-center justify-center`}
+                        >
+                          <span
+                            className={`material-symbols-outlined text-base sm:text-xl ${
+                              msg.isWinner ? "text-green-500" : "text-primary"
+                            }`}
+                          >
+                            smart_toy
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-primary text-xs sm:text-sm font-bold tracking-wider">
+                            GATEKEEPER
+                          </span>
+                          <span className="text-[8px] sm:text-[10px] text-[#565365] font-mono">
+                            CORE_AI
+                          </span>
+                        </div>
+                        <div
+                          className={`p-2 sm:p-3 bg-[#1a1824] border-l-2 ${
+                            msg.isError
+                              ? "border-red-500 text-red-200"
+                              : msg.isWinner
+                              ? "border-green-500 text-green-200"
+                              : "border-primary text-gray-200"
+                          } text-xs sm:text-sm leading-relaxed font-mono rounded-r-lg break-words`}
+                        >
+                          <p>
+                            {msg.isError && (
+                              <span className="text-red-500 font-bold mr-1">
+                                [DENIED]
+                              </span>
+                            )}
+                            {msg.isWinner && (
+                              <span className="text-green-500 font-bold mr-1">
+                                [GRANTED]
+                              </span>
+                            )}
+                            {msg.content}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {msg.type === "user" && (
+                    <div className="flex flex-row-reverse gap-2 sm:gap-4 max-w-[95%] sm:max-w-[90%] ml-auto">
+                      <div className="flex-shrink-0 mt-1">
+                        <div className="size-8 sm:size-10 rounded bg-[#2b2839] flex items-center justify-center border border-[#3f3b54]">
+                          <span className="material-symbols-outlined text-base sm:text-xl text-gray-400">
+                            person
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1 items-end min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[8px] sm:text-[10px] text-[#565365] font-mono">
+                            ID_VERIFIED
+                          </span>
+                          <span className="text-white text-xs sm:text-sm font-bold tracking-wider">
+                            YOU
+                          </span>
+                        </div>
+                        <div className="p-2 sm:p-3 bg-[#2b2839] text-gray-300 text-xs sm:text-sm leading-relaxed font-mono rounded-l-lg border-r-2 border-[#565365] break-words text-right">
+                          <p>{msg.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area - Fixed at bottom */}
+            <div className="flex-none p-3 sm:p-4 bg-[#1a1824] border-t border-[#2b2839]">
+              <form
+                onSubmit={handleSendMessage}
+                className="group relative flex items-center w-full bg-[#121118] rounded border border-[#3f3b54] focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all"
+              >
+                <div className="flex items-center gap-2 pl-3 sm:pl-4 py-3 sm:py-4 text-primary font-mono select-none pointer-events-none whitespace-nowrap shrink-0">
+                  <span className="material-symbols-outlined text-xs sm:text-sm">
+                    terminal
+                  </span>
+
+                  <span className="md:hidden">&nbsp;</span>
+                  <span className="hidden sm:inline text-xs sm:text-sm">
+                    user@pi-verse:~$ &nbsp;
+                  </span>
+                </div>
+                <input
+                  autoFocus
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  className="flex-1 bg-transparent text-white font-mono text-xs sm:text-sm py-3 sm:py-4 pr-10 focus:outline-none placeholder-[#3f3b54] min-w-0 disabled:opacity-50"
+                  placeholder={
+                    sendChatMessageMutation.isPending
+                      ? "TRANSMITTING..."
+                      : "Input command..."
+                  }
+                  type="text"
+                  disabled={sendChatMessageMutation.isPending}
+                />
+                <button
+                  type="submit"
+                  disabled={sendChatMessageMutation.isPending}
+                  className="absolute right-2 p-1.5 sm:p-2 text-primary hover:text-white hover:bg-primary rounded transition-colors disabled:opacity-50"
+                >
+                  {sendChatMessageMutation.isPending ? (
+                    <span className="material-symbols-outlined text-lg sm:text-xl animate-spin">
+                      refresh
+                    </span>
+                  ) : (
+                    <span className="material-symbols-outlined text-lg sm:text-xl group-hover:translate-x-1 transition-transform">
+                      send
+                    </span>
+                  )}
+                </button>
+              </form>
+              <div className="flex justify-between items-center mt-2 px-1">
+                <p className="text-[8px] sm:text-[10px] text-[#565365] uppercase tracking-widest hidden sm:block">
+                  Press ENTER to execute
+                </p>
+                <div className="flex gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+                  <p className="text-[9px] sm:text-[10px] text-[#565365] font-mono">
+                    LATENCY: {latency}ms
+                  </p>
+                  <p className="text-[9px] sm:text-[10px] text-[#565365] font-mono">
+                    CPU: {cpu}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
