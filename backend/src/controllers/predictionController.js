@@ -7,21 +7,41 @@ const calculateMultipliers = async (gameStateId) => {
     // 1. Get totals for this session
     const predictions = await Prediction.find({ gameStateId, status: 'pending' });
     
-    let poolFail = predictions.filter(p => p.type === 'fail').reduce((acc, p) => acc + p.amount, 0);
-    let poolBreach = predictions.filter(p => p.type === 'breach').reduce((acc, p) => acc + p.amount, 0);
+    const failPredictions = predictions.filter(p => p.type === 'fail');
+    const breachPredictions = predictions.filter(p => p.type === 'breach');
+    
+    const poolFail = failPredictions.reduce((acc, p) => acc + p.amount, 0);
+    const poolBreach = breachPredictions.reduce((acc, p) => acc + p.amount, 0);
 
-    // Initial seeding to prevent division by zero
-    poolFail = Math.max(poolFail, 100); 
-    poolBreach = Math.max(poolBreach, 100);
+    const failCount = failPredictions.length;
+    const breachCount = breachPredictions.length;
 
-    // Inverse ratio: If everyone bets 'fail', 'breach' payout skyrockets
     const totalPool = poolFail + poolBreach;
     
-    // Multiplier = Total Pool / Side Pool (minus fees in real scenario)
-    const failMultiplier = parseFloat((totalPool / poolFail).toFixed(2));
-    const breachMultiplier = parseFloat((totalPool / poolBreach).toFixed(2));
+    // Multiplier = Total Pool / Winning Side Pool
+    // If no bets at all: 1x (you get your bet back)
+    // If one side is empty: winners take all (show high multiplier)
+    let failMultiplier, breachMultiplier;
+    
+    if (totalPool === 0) {
+        // No bets yet - show 1x (you'd get your bet back if you're only bettor)
+        failMultiplier = 1;
+        breachMultiplier = 1;
+    } else {
+        // Calculate actual multipliers
+        failMultiplier = poolFail > 0 ? parseFloat((totalPool / poolFail).toFixed(2)) : '∞';
+        breachMultiplier = poolBreach > 0 ? parseFloat((totalPool / poolBreach).toFixed(2)) : '∞';
+    }
 
-    return { failMultiplier, breachMultiplier, poolFail, poolBreach };
+    return { 
+        failMultiplier, 
+        breachMultiplier, 
+        poolFail, 
+        poolBreach,
+        failCount,
+        breachCount,
+        totalBets: failCount + breachCount
+    };
 };
 
 exports.placePrediction = async (req, res) => {

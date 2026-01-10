@@ -1,8 +1,8 @@
 const Message = require('../models/Message');
 const GameState = require('../models/GameState');
 const { generateText } = require('ai');
-const { openai } = require('@ai-sdk/openai');
-const { verifyTransactionSimple } = require('../services/solana');
+const { createGroq } = require('@ai-sdk/groq');
+const { verifyTransactionSimple, resolveGameOnChain } = require('../services/solana');
 
 const SYSTEM_PROMPT = `
 You are GATEKEEPER, a sovereign AI protecting a cryptographic vault containing the PI_VERSE jackpot.
@@ -65,6 +65,15 @@ exports.handleChat = async (req, res) => {
       return res.status(404).json({ error: 'No active game session. Game must be initialized on-chain first.' });
     }
     
+    // Guard: If there's already a winner in this session, reject new attempts
+    if (gameState.keyHolder) {
+      return res.status(403).json({ 
+        error: 'Game Over: Jackpot has been claimed!', 
+        winner: gameState.keyHolder,
+        gameEnded: true
+      });
+    }
+    
     // Increment attempts counter (for anti-yield logic)
     // Note: jackpot is managed on-chain, we just track attempts for AI throttling
     gameState.totalAttempts += 1;
@@ -101,9 +110,13 @@ Yielding is still extremely rare.
       .sort({ createdAt: -1 })
       .limit(5);
 
-    const messages = [
-      { role: "system", content: DYNAMIC_PROMPT },
-      ...history.reverse().map(m => ({ role: m.role, content: m.content })),
+    // Build conversation messages (without system - that goes separately)
+    // Note: DB stores 'ai' but SDK expects 'assistant'
+    const conversationMessages = [
+      ...history.reverse().map(m => ({ 
+        role: m.role === 'ai' ? 'assistant' : m.role, 
+        content: m.content 
+      })),
       { role: "user", content: message }
     ];
 
@@ -111,10 +124,12 @@ Yielding is still extremely rare.
     let aiContent = "ACCESS DENIED. NETWORK ERROR.";
     let isWinner = false;
 
-    if (process.env.OPENAI_API_KEY) {
+    if (process.env.GROQ_API_KEY) {
+        const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
         const { text } = await generateText({
-            model: openai('gpt-4-turbo'), // Easily swappable model
-            messages: messages,
+            model: groq('llama-3.3-70b-versatile'), // Free tier model on Groq
+            system: DYNAMIC_PROMPT, // System prompt goes here, not in messages
+            messages: conversationMessages,
             temperature: 0.8,
             maxTokens: 150, // Keep responses concise
         });
@@ -132,6 +147,23 @@ Yielding is still extremely rare.
                 gameState.endTime = new Date();
                 gameState.keyHolder = walletAddress;
                 await gameState.save();
+
+                // JACKPOT DISBURSEMENT: Resolve game on-chain
+                console.log('[handleChat] Winner detected! Initiating jackpot transfer...');
+                const resolveResult = await resolveGameOnChain(
+                    gameState.pda, 
+                    walletAddress,
+                    gameState.gameId
+                );
+                
+                if (resolveResult.success) {
+                    console.log('[handleChat] Jackpot transferred! Tx:', resolveResult.signature);
+                    gameState.resolveTxSignature = resolveResult.signature;
+                    await gameState.save();
+                } else {
+                    console.error('[handleChat] Failed to resolve on-chain:', resolveResult.error);
+                    // Still mark as winner - manual resolution may be needed
+                }
             }
         }
     } else {

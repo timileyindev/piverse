@@ -2,10 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 
+import HowToPlayModal from "../components/HowToPlayModal";
+
 export default function AccessPage({ onEnter }) {
   const { connected, publicKey, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
   const [typedStatus, setTypedStatus] = useState("");
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   // Simple typing effect for the status log
   useEffect(() => {
@@ -35,6 +38,11 @@ export default function AccessPage({ onEnter }) {
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex items-center justify-center p-2 sm:p-4 selection:bg-primary selection:text-white overflow-hidden relative">
+      <HowToPlayModal
+        isOpen={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+      />
+
       {/* Background texture/grid effect */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-20 bg-[radial-gradient(#3713ec_1px,transparent_1px)] [background-size:24px_24px]"></div>
       <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-t from-background-dark via-transparent to-transparent"></div>
@@ -55,15 +63,23 @@ export default function AccessPage({ onEnter }) {
               // PI VERSE ACCESS TERMINAL
             </h2>
           </div>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-2 w-2 rounded-full ${
-                connected ? "bg-green-500" : "bg-red-500"
-              } animate-pulse`}
-            ></div>
-            <span className="text-[#a19db9] text-[10px] sm:text-xs font-bold tracking-widest">
-              NET: {connected ? "SECURE" : "UNVERIFIED"}
-            </span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowHowToPlay(true)}
+              className="bg-primary/20 hover:bg-primary/30 text-primary hover:text-white border border-primary/50 hover:border-primary px-3 py-1.5 rounded text-[10px] sm:text-xs font-bold tracking-wider transition-all shadow-[0_0_10px_-3px_rgba(55,19,236,0.3)] hover:shadow-[0_0_15px_-3px_rgba(55,19,236,0.6)] animate-pulse hover:animate-none"
+            >
+              [ HOW TO PLAY ]
+            </button>
+            <div className="flex items-center gap-2">
+              <div
+                className={`h-2 w-2 rounded-full ${
+                  connected ? "bg-green-500" : "bg-red-500"
+                } animate-pulse`}
+              ></div>
+              <span className="text-[#a19db9] text-[10px] sm:text-xs font-bold tracking-widest hidden sm:inline">
+                NET: {connected ? "SECURE" : "UNVERIFIED"}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -138,7 +154,7 @@ export default function AccessPage({ onEnter }) {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4 mt-2">
               <button
-                disabled={connected}
+                // disabled={connected}
                 onClick={() => {
                   if (connected) {
                     onEnter();
@@ -151,7 +167,7 @@ export default function AccessPage({ onEnter }) {
                 <span className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity -ml-6 group-hover:ml-0 duration-300">
                   &gt;
                 </span>
-                {connected ? "[ ENTER PI VERSE ]" : "[ CONNECT WALLET ]"}
+                {connected ? "[ ENTER PI VERSE ]" : "[ PLAY NOW ]"}
               </button>
               {connected && (
                 <button

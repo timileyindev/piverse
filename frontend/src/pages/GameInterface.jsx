@@ -5,6 +5,7 @@ import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import Header from "../components/Header";
 import TransactionLoader from "../components/TransactionLoader";
 import Countdown from "../components/Countdown";
+import WinnerCelebration from "../components/WinnerCelebration";
 import { useGameStats, useSendChatMessage } from "../hooks/useGameData";
 import { useSolanaConfig } from "../context/ConfigContext";
 
@@ -40,6 +41,8 @@ export default function GameInterface() {
   const [latency, setLatency] = useState(12);
   const [cpu, setCpu] = useState(4);
   const [isTransacting, setIsTransacting] = useState(false);
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [wonJackpot, setWonJackpot] = useState(0);
   const messagesEndRef = useRef(null);
 
   const { data: gameStats, watcherCount } = useGameStats();
@@ -106,30 +109,67 @@ export default function GameInterface() {
       signature = tx;
       setIsTransacting(false);
 
-      const response = await sendChatMessageMutation.mutateAsync({
-        walletAddress: publicKey.toString(),
-        message: messageContent,
-        txSignature: signature,
-      });
+      // Update the user message to track the signature (for potential retry)
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === prev.length - 1 && m.type === "user"
+            ? { ...m, txSignature: signature, status: "pending" }
+            : m
+        )
+      );
 
-      const isWin = response.isWinner;
+      try {
+        const response = await sendChatMessageMutation.mutateAsync({
+          walletAddress: publicKey.toString(),
+          message: messageContent,
+          txSignature: signature,
+        });
 
-      const aiMsg = {
-        type: "ai",
-        content: response.response,
-        isError: !isWin, // Use error style for rejections (red border)
-        isWinner: isWin,
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+        const isWin = response.isWinner;
 
-      if (isWin) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "system",
-            content: "CRITICAL: KEY EXTRACTION SUCCESSFUL. SESSION TERMINATED.",
-          },
-        ]);
+        // Mark user message as successful
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.txSignature === signature ? { ...m, status: "success" } : m
+          )
+        );
+
+        const aiMsg = {
+          type: "ai",
+          content: response.response,
+          isError: !isWin,
+          isWinner: isWin,
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+
+        if (isWin) {
+          // WINNER! Show celebration
+          setWonJackpot(response.jackpot || gameStats?.jackpot || 0);
+          setShowWinnerModal(true);
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: "system",
+              content:
+                "🎉 CRITICAL: KEY EXTRACTION SUCCESSFUL. JACKPOT TRANSFERRED TO YOUR WALLET!",
+            },
+          ]);
+        }
+      } catch (backendError) {
+        // Backend failed but transaction succeeded - allow retry
+        console.error("Backend error:", backendError);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.txSignature === signature
+              ? {
+                  ...m,
+                  status: "failed",
+                  error: "Backend processing failed. Click to retry.",
+                }
+              : m
+          )
+        );
       }
     } catch (error) {
       setIsTransacting(false);
@@ -142,7 +182,6 @@ export default function GameInterface() {
         error.message &&
         error.message.includes("Game Session not initialized")
       ) {
-        // This catches the explicit throw from earlier
         errorText = "SYSTEM ERROR: GAME SESSION NOT FOUND.";
       } else if (!signature) {
         errorText = "PAYMENT FAILED. INSUFFICIENT FUNDS OR NETWORK ERROR.";
@@ -153,6 +192,69 @@ export default function GameInterface() {
         content: errorText,
       };
       setMessages((prev) => [...prev, errorMsg]);
+    }
+  };
+
+  // Retry handler for failed backend requests
+  const handleRetryMessage = async (msg) => {
+    if (!msg.txSignature || msg.status !== "failed") return;
+
+    // Mark as retrying
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.txSignature === msg.txSignature ? { ...m, status: "retrying" } : m
+      )
+    );
+
+    try {
+      const response = await sendChatMessageMutation.mutateAsync({
+        walletAddress: publicKey.toString(),
+        message: msg.content,
+        txSignature: msg.txSignature,
+      });
+
+      const isWin = response.isWinner;
+
+      // Mark as successful
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.txSignature === msg.txSignature
+            ? { ...m, status: "success", error: null }
+            : m
+        )
+      );
+
+      const aiMsg = {
+        type: "ai",
+        content: response.response,
+        isError: !isWin,
+        isWinner: isWin,
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+
+      if (isWin) {
+        // WINNER! Show celebration
+        setWonJackpot(response.jackpot || gameStats?.jackpot || 0);
+        setShowWinnerModal(true);
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "system",
+            content:
+              "🎉 CRITICAL: KEY EXTRACTION SUCCESSFUL. JACKPOT TRANSFERRED TO YOUR WALLET!",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Retry failed:", error);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.txSignature === msg.txSignature
+            ? { ...m, status: "failed", error: "Retry failed. Try again." }
+            : m
+        )
+      );
     }
   };
 
@@ -182,6 +284,11 @@ export default function GameInterface() {
 
       <Header />
       <TransactionLoader open={isTransacting} />
+      <WinnerCelebration
+        isOpen={showWinnerModal}
+        jackpotAmount={wonJackpot}
+        onClose={() => setShowWinnerModal(false)}
+      />
 
       {/* Main Content Area - Flex-1 to fill remaining space */}
       <main className="flex-1 flex justify-center p-2 sm:p-6 lg:p-10 overflow-hidden relative w-full h-full">
@@ -354,23 +461,71 @@ export default function GameInterface() {
                   {msg.type === "user" && (
                     <div className="flex flex-row-reverse gap-2 sm:gap-4 max-w-[95%] sm:max-w-[90%] ml-auto">
                       <div className="flex-shrink-0 mt-1">
-                        <div className="size-8 sm:size-10 rounded bg-[#2b2839] flex items-center justify-center border border-[#3f3b54]">
-                          <span className="material-symbols-outlined text-base sm:text-xl text-gray-400">
-                            person
+                        <div
+                          className={`size-8 sm:size-10 rounded flex items-center justify-center border ${
+                            msg.status === "failed"
+                              ? "bg-red-500/10 border-red-500/50"
+                              : msg.status === "pending" ||
+                                msg.status === "retrying"
+                              ? "bg-yellow-500/10 border-yellow-500/50"
+                              : "bg-[#2b2839] border-[#3f3b54]"
+                          }`}
+                        >
+                          <span
+                            className={`material-symbols-outlined text-base sm:text-xl ${
+                              msg.status === "failed"
+                                ? "text-red-400"
+                                : msg.status === "pending" ||
+                                  msg.status === "retrying"
+                                ? "text-yellow-400 animate-pulse"
+                                : "text-gray-400"
+                            }`}
+                          >
+                            {msg.status === "failed"
+                              ? "error"
+                              : msg.status === "pending" ||
+                                msg.status === "retrying"
+                              ? "sync"
+                              : "person"}
                           </span>
                         </div>
                       </div>
                       <div className="flex flex-col gap-1 items-end min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-[8px] sm:text-[10px] text-[#565365] font-mono">
-                            ID_VERIFIED
+                            {msg.status === "failed"
+                              ? "TX_FAILED"
+                              : msg.status === "pending"
+                              ? "PROCESSING"
+                              : msg.status === "retrying"
+                              ? "RETRYING"
+                              : "ID_VERIFIED"}
                           </span>
                           <span className="text-white text-xs sm:text-sm font-bold tracking-wider">
                             YOU
                           </span>
                         </div>
-                        <div className="p-2 sm:p-3 bg-[#2b2839] text-gray-300 text-xs sm:text-sm leading-relaxed font-mono rounded-l-lg border-r-2 border-[#565365] break-words text-right">
+                        <div
+                          className={`p-2 sm:p-3 text-xs sm:text-sm leading-relaxed font-mono rounded-l-lg border-r-2 break-words text-right ${
+                            msg.status === "failed"
+                              ? "bg-red-500/10 border-red-500 text-red-200"
+                              : "bg-[#2b2839] border-[#565365] text-gray-300"
+                          }`}
+                        >
                           <p>{msg.content}</p>
+                          {msg.status === "failed" && (
+                            <button
+                              onClick={() => handleRetryMessage(msg)}
+                              className="mt-2 flex items-center gap-1 text-[10px] sm:text-xs text-red-400 hover:text-red-300 transition-colors group"
+                            >
+                              <span className="material-symbols-outlined text-[14px] group-hover:rotate-180 transition-transform duration-300">
+                                refresh
+                              </span>
+                              <span className="underline underline-offset-2">
+                                RETRY SUBMISSION
+                              </span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -400,6 +555,7 @@ export default function GameInterface() {
                   autoFocus
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
+                  maxLength={280}
                   className="flex-1 bg-transparent text-white font-mono text-xs sm:text-sm py-3 sm:py-4 pr-10 focus:outline-none placeholder-[#3f3b54] min-w-0 disabled:opacity-50"
                   placeholder={
                     sendChatMessageMutation.isPending
@@ -426,9 +582,21 @@ export default function GameInterface() {
                 </button>
               </form>
               <div className="flex justify-between items-center mt-2 px-1">
-                <p className="text-[8px] sm:text-[10px] text-[#565365] uppercase tracking-widest hidden sm:block">
-                  Press ENTER to execute
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-[8px] sm:text-[10px] text-[#565365] uppercase tracking-widest hidden sm:block">
+                    Press ENTER to execute
+                  </p>
+                  <span
+                    className={`text-[8px] sm:text-[10px] font-mono ${
+                      inputValue.length >= 280
+                        ? "text-red-500 font-bold"
+                        : "text-[#565365]"
+                    }`}
+                  >
+                    {inputValue.length}/280 CHARS
+                  </span>
+                </div>
+
                 <div className="flex gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
                   <p className="text-[9px] sm:text-[10px] text-[#565365] font-mono">
                     LATENCY: {latency}ms

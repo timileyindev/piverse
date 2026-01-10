@@ -46,4 +46,25 @@
     );
     background-size: 100% 4px;
   }
+
+  /* Streaming animations for global feed */
+  .animate-slide-in-left {
+    animation: slideUp 0.4s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideUp 0.4s ease-out forwards;
+  }
+}
+
+/* Keyframes for streaming animations */
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

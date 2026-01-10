@@ -47,6 +47,10 @@ const GameStateSchema = new mongoose.Schema({
   },
   endTime: {
     type: Date
+  },
+  resolveTxSignature: {
+    type: String,
+    default: null
   }
 }, { timestamps: true });
 

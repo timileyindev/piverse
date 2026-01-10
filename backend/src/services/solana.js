@@ -147,3 +147,84 @@ exports.verifyTransactionSimple = async (signature, senderAddress, instructionNa
     });
     return result.valid;
 };
+
+/**
+ * Resolves the game on-chain, disbursing the jackpot to the winner.
+ * This must be called by the Ghost/Authority wallet.
+ * 
+ * @param {string} gameStatePda - The game state PDA address
+ * @param {string} winnerAddress - The winner's wallet address
+ * @param {number} gameId - The game ID for PDA derivation
+ * @returns {Promise<{success: boolean, signature?: string, error?: string}>}
+ */
+exports.resolveGameOnChain = async (gameStatePda, winnerAddress, gameId) => {
+    try {
+        // Check for ghost private key
+        const ghostPrivateKey = process.env.GHOST_PRIVATE_KEY;
+        if (!ghostPrivateKey) {
+            console.error('[resolveGameOnChain] GHOST_PRIVATE_KEY not configured');
+            return { success: false, error: 'Ghost wallet not configured' };
+        }
+
+        const { Keypair } = require('@solana/web3.js');
+        const { AnchorProvider, Program, BN } = require('@coral-xyz/anchor');
+        const { IDL } = require('../config/solana');
+        
+        // Parse ghost keypair from JSON array or base58
+        let ghostKeypair;
+        try {
+            const parsed = JSON.parse(ghostPrivateKey);
+            ghostKeypair = Keypair.fromSecretKey(Uint8Array.from(parsed));
+        } catch {
+            // Fallback: base58 encoded
+            const bs58 = require('bs58');
+            ghostKeypair = Keypair.fromSecretKey(bs58.decode(ghostPrivateKey));
+        }
+
+        // Create provider with ghost wallet
+        const wallet = {
+            publicKey: ghostKeypair.publicKey,
+            signTransaction: async (tx) => {
+                tx.partialSign(ghostKeypair);
+                return tx;
+            },
+            signAllTransactions: async (txs) => {
+                txs.forEach(tx => tx.partialSign(ghostKeypair));
+                return txs;
+            }
+        };
+
+        const provider = new AnchorProvider(connection, wallet, {
+            preflightCommitment: 'confirmed'
+        });
+
+        const program = new Program(IDL, provider);
+        const gameStatePubkey = new PublicKey(gameStatePda);
+        const winnerPubkey = new PublicKey(winnerAddress);
+
+        // Derive game vault PDA
+        const [gameVaultPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("game_vault"), gameStatePubkey.toBuffer()],
+            PROGRAM_ID
+        );
+
+        // Call resolve_game with Breached outcome
+        const tx = await program.methods
+            .resolveGame({ breached: {} }, winnerPubkey)
+            .accounts({
+                gameState: gameStatePubkey,
+                signer: ghostKeypair.publicKey,
+                winner: winnerPubkey,
+                gameVault: gameVaultPda,
+            })
+            .signers([ghostKeypair])
+            .rpc();
+
+        console.log('[resolveGameOnChain] Game resolved! Tx:', tx);
+        return { success: true, signature: tx };
+
+    } catch (error) {
+        console.error('[resolveGameOnChain] Error:', error.message);
+        return { success: false, error: error.message };
+    }
+};

@@ -18,12 +18,41 @@ export function useLiveFeed() {
 
   useEffect(() => {
     socket.on('new_feed_event', (newEvent) => {
-      // Optimistically update the feed cache
-      queryClient.setQueryData(['feed'], (oldData) => {
+      // Transform socket event to match feed item format
+      // Socket sends: { type, walletAddress, userMessage, aiResponse, timestamp }
+      // Feed expects: { role, content, walletAddress, createdAt, _id }
+      
+      if (newEvent.type === 'chat' && newEvent.userMessage && newEvent.aiResponse) {
+        const userMsg = {
+          _id: `user_${Date.now()}`,
+          role: 'user',
+          content: newEvent.userMessage,
+          walletAddress: newEvent.walletAddress,
+          createdAt: newEvent.timestamp,
+          isNew: true // Flag for animation
+        };
+        
+        const aiMsg = {
+          _id: `ai_${Date.now()}`,
+          role: 'ai', 
+          content: newEvent.aiResponse,
+          walletAddress: newEvent.walletAddress,
+          createdAt: newEvent.timestamp,
+          isNew: true // Flag for animation
+        };
+        
+        queryClient.setQueryData(['feed'], (oldData) => {
+          if(!oldData) return [aiMsg, userMsg];
+          // Prepend both messages (AI first since feed is reversed)
+          return [aiMsg, userMsg, ...oldData].slice(0, 50);
+        });
+      } else {
+        // Fallback for other event types
+        queryClient.setQueryData(['feed'], (oldData) => {
           if(!oldData) return [newEvent];
-          // Prepend new event
           return [newEvent, ...oldData].slice(0, 50);
-      });
+        });
+      }
     });
 
     return () => {
@@ -80,6 +109,9 @@ export function useGameStats() {
              try {
                  const account = await program.account.gameState.fetch(gameStatePda);
                  
+                 // Parse market status enum
+                 const marketStatusKey = Object.keys(account.marketStatus)[0];
+                 
                  return {
                      status: account.isActive ? "active" : "inactive",
                      name: backendStats?.name,
@@ -90,6 +122,8 @@ export function useGameStats() {
                      gameId: backendStats.gameId,
                      devWallet: account.devWallet.toString(),
                      endTime: account.endTime.toNumber() * 1000,
+                     marketStatus: marketStatusKey, // 'active', 'breached', or 'failed'
+                     winner: account.winner?.toString() || null,
                      initialized: true
                  };
              } catch (e) {
@@ -161,6 +195,7 @@ export function usePlacePrediction() {
         mutationFn: api.placePrediction,
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries(['predictions', variables.walletAddress]);
+            queryClient.invalidateQueries(['activePrediction', variables.walletAddress]);
         }
     });
 }
@@ -173,15 +208,16 @@ export function useSendChatMessage() {
 
 export function useActivePrediction(walletAddress, gameStats) {
   const { connection } = useConnection();
-  const { programId, idl } = useSolanaConfig();
+  const { idl } = useSolanaConfig();
   
   return useQuery({
       queryKey: ['activePrediction', walletAddress, gameStats?.pda],
       queryFn: async () => {
-          if (!walletAddress || !gameStats?.pda || !programId || !idl) return null;
+          if (!walletAddress || !gameStats?.pda || !idl) return null;
           
           const provider = new AnchorProvider(connection, { publicKey: new PublicKey(walletAddress) }, { preflightCommitment: "processed" });
-          const program = new Program(idl, programId, provider);
+          const program = new Program(idl, provider);
+          const programPubkey = new PublicKey(idl.address);
 
           const gameStatePubkey = new PublicKey(gameStats.pda);
           const [predictionPda] = PublicKey.findProgramAddressSync(
@@ -190,7 +226,7 @@ export function useActivePrediction(walletAddress, gameStats) {
                 gameStatePubkey.toBuffer(), 
                 new PublicKey(walletAddress).toBuffer()
               ],
-              program.programId
+              programPubkey
           );
 
           try {
@@ -206,6 +242,6 @@ export function useActivePrediction(walletAddress, gameStats) {
               return null;
           }
       },
-      enabled: !!walletAddress && !!gameStats?.pda && !!programId
+      enabled: !!walletAddress && !!gameStats?.pda && !!idl
   });
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { SystemProgram, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { BN, AnchorProvider, Program } from "@coral-xyz/anchor";
@@ -25,7 +25,17 @@ export default function PredictionMarket() {
   const [showMobileBetting, setShowMobileBetting] = useState(false);
   const [isTransacting, setIsTransacting] = useState(false);
 
+  const feedContainerRef = useRef(null);
+
   const { data: feedData = [] } = useLiveFeed();
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (feedContainerRef.current && feedData.length > 0) {
+      // Since we use flex-col-reverse, scroll to top means showing newest
+      feedContainerRef.current.scrollTop = 0;
+    }
+  }, [feedData]);
   const { data: gameStats, watcherCount } = useGameStats();
   const { data: marketStats } = useMarketStats();
   const { data: activePrediction, isLoading: isLoadingPrediction } =
@@ -108,6 +118,61 @@ export default function PredictionMarket() {
     }
   };
 
+  // Claim winnings from prediction market
+  const handleClaimWinnings = async () => {
+    if (!wallet.publicKey || !activePrediction) return;
+
+    setIsTransacting(true);
+    try {
+      const provider = new AnchorProvider(connection, wallet, {
+        preflightCommitment: "processed",
+      });
+      const program = new Program(idl, provider);
+      const programPubkey = new PublicKey(idl.address);
+
+      const gameStatePubkey = new PublicKey(gameStats.pda);
+      const predictionPda = new PublicKey(activePrediction.pda);
+
+      // Derive Market Vault PDA
+      const [marketVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("market_vault"), gameStatePubkey.toBuffer()],
+        programPubkey
+      );
+
+      const tx = await program.methods
+        .claimWinnings()
+        .accounts({
+          gameState: gameStatePubkey,
+          prediction: predictionPda,
+          user: wallet.publicKey,
+          marketVault: marketVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log("Winnings claimed:", tx);
+      alert("🎉 Winnings claimed successfully! Check your wallet.");
+
+      // Refresh prediction state
+      window.location.reload();
+    } catch (error) {
+      console.error("Claim failed:", error);
+      if (error.message?.includes("PredictionLost")) {
+        alert("Sorry, your prediction was incorrect. Better luck next time!");
+      } else if (error.message?.includes("AlreadyClaimed")) {
+        alert("You have already claimed your winnings.");
+      } else if (error.message?.includes("MarketNotResolved")) {
+        alert(
+          "The market has not been resolved yet. Please wait for the game to end."
+        );
+      } else {
+        alert("Claim failed: " + error.message);
+      }
+    } finally {
+      setIsTransacting(false);
+    }
+  };
+
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-white h-screen flex flex-col overflow-hidden relative">
       <Header />
@@ -137,20 +202,34 @@ export default function PredictionMarket() {
           </div>
 
           {/* Terminal Window */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar relative flex flex-col-reverse">
+          <div
+            ref={feedContainerRef}
+            className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar relative flex flex-col-reverse"
+          >
             <div className="absolute inset-0 pointer-events-none z-20 opacity-30 bg-[linear-gradient(to_bottom,rgba(255,255,255,0),rgba(255,255,255,0)_50%,rgba(0,0,0,0.2)_50%,rgba(0,0,0,0.2))] bg-[length:100%_4px]"></div>
             <div className="max-w-4xl w-full mx-auto flex flex-col-reverse gap-6 pb-24 lg:pb-10">
-              {feedData.map((item) => {
+              {feedData.map((item, index) => {
                 const isUser = item.role === "user";
                 const timestamp = new Date(
                   item.createdAt || Date.now()
                 ).toLocaleTimeString("en-US", { hour12: false });
+                const isNew = item.isNew;
 
                 if (isUser) {
                   return (
                     <div
                       key={item._id || Math.random()}
-                      className="flex gap-4 group"
+                      className={`flex gap-4 group transition-all duration-500 ${
+                        isNew ? "animate-slide-in-left opacity-0" : ""
+                      }`}
+                      style={
+                        isNew
+                          ? {
+                              animationDelay: "100ms",
+                              animationFillMode: "forwards",
+                            }
+                          : {}
+                      }
                     >
                       <div className="flex-shrink-0 mt-1">
                         <div className="bg-blue-500/20 rounded-md size-10 border border-blue-500/50 flex items-center justify-center text-blue-400 font-bold text-xs">
@@ -180,7 +259,17 @@ export default function PredictionMarket() {
                   return (
                     <div
                       key={item._id || Math.random()}
-                      className="flex gap-4 flex-row-reverse group"
+                      className={`flex gap-4 flex-row-reverse group transition-all duration-500 ${
+                        isNew ? "animate-slide-in-right opacity-0" : ""
+                      }`}
+                      style={
+                        isNew
+                          ? {
+                              animationDelay: "300ms",
+                              animationFillMode: "forwards",
+                            }
+                          : {}
+                      }
                     >
                       <div className="flex-shrink-0 mt-1">
                         <div className="size-10 rounded bg-primary/10 border border-primary/30 flex items-center justify-center">
@@ -322,6 +411,76 @@ export default function PredictionMarket() {
                 </div>
               </div>
             </div>
+
+            {/* Prediction Market Infographic */}
+            <div className="flex flex-col gap-2 p-3 rounded bg-[#1c1929] border border-[#2b2839]">
+              <div className="flex items-center justify-between">
+                <p className="text-[#a19db9] text-xs uppercase tracking-wider font-bold">
+                  Market Sentiment
+                </p>
+                <span className="text-white text-xs font-mono">
+                  {marketStats.totalBets || 0} bets
+                </span>
+              </div>
+
+              {/* Visual Bar */}
+              <div className="relative h-6 rounded-full overflow-hidden bg-[#0c0b10] border border-[#2b2839]">
+                {(() => {
+                  const failPool = marketStats.poolFail || 0;
+                  const breachPool = marketStats.poolBreach || 0;
+                  const total = failPool + breachPool || 1;
+                  const failPercent = Math.round((failPool / total) * 100);
+                  const breachPercent = 100 - failPercent;
+
+                  return (
+                    <>
+                      {/* Fail Side (Red/Left) */}
+                      <div
+                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-500 flex items-center justify-start pl-2"
+                        style={{ width: `${failPercent}%` }}
+                      >
+                        {failPercent >= 20 && (
+                          <span className="text-white text-[10px] font-bold drop-shadow-md">
+                            {failPercent}%
+                          </span>
+                        )}
+                      </div>
+                      {/* Breach Side (Purple/Right) */}
+                      <div
+                        className="absolute right-0 top-0 h-full bg-gradient-to-l from-primary to-[#5a2ee0] transition-all duration-500 flex items-center justify-end pr-2"
+                        style={{ width: `${breachPercent}%` }}
+                      >
+                        {breachPercent >= 20 && (
+                          <span className="text-white text-[10px] font-bold drop-shadow-md">
+                            {breachPercent}%
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Labels */}
+              <div className="flex justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="size-2 rounded-full bg-red-500" />
+                  <span className="text-red-400 font-bold">FAIL</span>
+                  <span className="text-[#56526e]">
+                    ({marketStats.failCount || 0} bets •{" "}
+                    {(marketStats.poolFail || 0).toFixed(2)} SOL)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#56526e]">
+                    ({(marketStats.poolBreach || 0).toFixed(2)} SOL •{" "}
+                    {marketStats.breachCount || 0} bets)
+                  </span>
+                  <span className="text-primary font-bold">BREACH</span>
+                  <div className="size-2 rounded-full bg-primary" />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Betting Interface */}
@@ -333,86 +492,277 @@ export default function PredictionMarket() {
                 </span>
                 Predict Outcome
               </h3>
-              <div className="bg-[#1c1929] rounded-lg p-1 border border-[#2b2839] flex mb-4 relative">
-                <button
-                  onClick={() => setSelectedSide("fail")}
-                  className={`flex-1 py-3 px-2 rounded transition-all text-sm font-bold group border border-transparent ${
-                    selectedSide === "fail"
-                      ? "bg-[#2b2839] text-white border-white/20"
-                      : "text-[#a19db9] hover:bg-[#2b2839]"
-                  }`}
-                >
-                  <span className="block text-xs font-normal mb-1">FAIL</span>
-                  <span className="text-lg">{marketStats.failMultiplier}x</span>
-                </button>
-                <button
-                  onClick={() => setSelectedSide("breach")}
-                  className={`flex-1 py-3 px-2 rounded transition-all text-sm font-bold border ${
-                    selectedSide === "breach"
-                      ? "bg-primary/20 border-primary text-white"
-                      : "border-transparent text-primary/70 hover:bg-primary/5"
-                  }`}
-                >
-                  <span className="block text-xs font-normal mb-1">BREACH</span>
-                  <span className="text-lg">
-                    {marketStats.breachMultiplier}x
-                  </span>
-                </button>
-              </div>
 
-              <div className="space-y-3">
-                <label className="text-[#a19db9] text-xs uppercase font-bold tracking-wider flex justify-between">
-                  <span>Wager Amount</span>
-                  <span className="text-white">
-                    Selected: {selectedSide.toUpperCase()}
-                  </span>
-                </label>
-                <div className="relative">
-                  <input
-                    value={wager}
-                    onChange={(e) => setWager(e.target.value)}
-                    className="w-full bg-[#0c0b10] border border-[#3f3b54] rounded-lg py-3 pl-4 pr-12 text-white font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    placeholder="0.00"
-                    type="number"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#56526e] text-sm font-bold">
-                    SOL
-                  </span>
+              {/* Already Bet State */}
+              {activePrediction ? (
+                <div
+                  className={`rounded-lg p-4 text-center border ${
+                    activePrediction.claimed
+                      ? "bg-green-500/10 border-green-500/30"
+                      : gameStats.marketStatus !== "active"
+                      ? (gameStats.marketStatus === "breached" &&
+                          activePrediction.side === "breach") ||
+                        (gameStats.marketStatus === "failed" &&
+                          activePrediction.side === "fail")
+                        ? "bg-green-500/10 border-green-500/30"
+                        : "bg-red-500/10 border-red-500/30"
+                      : "bg-primary/5 border-primary/30"
+                  }`}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {activePrediction.claimed ? (
+                      <>
+                        <span className="material-symbols-outlined text-green-500">
+                          verified
+                        </span>
+                        <span className="text-green-500 font-bold">
+                          CLAIMED
+                        </span>
+                      </>
+                    ) : gameStats.marketStatus !== "active" ? (
+                      (gameStats.marketStatus === "breached" &&
+                        activePrediction.side === "breach") ||
+                      (gameStats.marketStatus === "failed" &&
+                        activePrediction.side === "fail") ? (
+                        <>
+                          <span className="material-symbols-outlined text-green-500">
+                            celebration
+                          </span>
+                          <span className="text-green-500 font-bold">
+                            YOU WON!
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-red-400">
+                            sentiment_dissatisfied
+                          </span>
+                          <span className="text-red-400 font-bold">
+                            PREDICTION LOST
+                          </span>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-primary">
+                          check_circle
+                        </span>
+                        <span className="text-primary font-bold">
+                          BET PLACED
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-[#a19db9] text-sm mb-3">
+                    {activePrediction.claimed
+                      ? "You have already claimed your winnings."
+                      : gameStats.marketStatus !== "active"
+                      ? (gameStats.marketStatus === "breached" &&
+                          activePrediction.side === "breach") ||
+                        (gameStats.marketStatus === "failed" &&
+                          activePrediction.side === "fail")
+                        ? "Congratulations! Click below to claim your winnings."
+                        : "The outcome did not match your prediction."
+                      : "You've already placed a bet on this session."}
+                  </p>
+
+                  {/* Bet Details */}
+                  <div className="bg-[#1c1929] rounded-lg p-3 border border-[#2b2839]">
+                    <div className="flex justify-between items-center">
+                      <span
+                        className={`font-bold uppercase ${
+                          activePrediction.side === "breach"
+                            ? "text-primary"
+                            : "text-red-400"
+                        }`}
+                      >
+                        {activePrediction.side}
+                      </span>
+                      <span className="text-white font-mono">
+                        {(
+                          parseInt(activePrediction.amount) / LAMPORTS_PER_SOL
+                        ).toFixed(2)}{" "}
+                        SOL
+                      </span>
+                    </div>
+                    {gameStats.marketStatus !== "active" && (
+                      <div className="mt-2 pt-2 border-t border-[#2b2839] text-xs">
+                        <span className="text-[#a19db9]">Outcome: </span>
+                        <span
+                          className={`font-bold uppercase ${
+                            gameStats.marketStatus === "breached"
+                              ? "text-primary"
+                              : "text-red-400"
+                          }`}
+                        >
+                          {gameStats.marketStatus}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Claim Button or Status */}
+                  {!activePrediction.claimed &&
+                    gameStats.marketStatus !== "active" &&
+                    ((gameStats.marketStatus === "breached" &&
+                      activePrediction.side === "breach") ||
+                    (gameStats.marketStatus === "failed" &&
+                      activePrediction.side === "fail") ? (
+                      <button
+                        onClick={handleClaimWinnings}
+                        disabled={isTransacting}
+                        className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isTransacting ? (
+                          <span className="material-symbols-outlined animate-spin">
+                            refresh
+                          </span>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined">
+                              account_balance_wallet
+                            </span>
+                            <span>CLAIM WINNINGS</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <p className="text-[#56526e] text-xs mt-3">
+                        Better luck next time!
+                      </p>
+                    ))}
+
+                  {gameStats.marketStatus === "active" && (
+                    <p className="text-[#56526e] text-xs mt-3">
+                      Awaiting session outcome...
+                    </p>
+                  )}
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[0.05, 0.1, 0.5, 1.0].map((val) => (
+              ) : (
+                <>
+                  {/* Side Selection */}
+                  <div className="bg-[#1c1929] rounded-lg p-1 border border-[#2b2839] flex mb-4 relative">
                     <button
-                      key={val}
-                      onClick={() => setWager(val.toString())}
-                      className="bg-[#2b2839] hover:bg-[#3f3b54] text-xs font-bold py-2 rounded text-[#a19db9] hover:text-white transition-colors"
+                      onClick={() => setSelectedSide("fail")}
+                      className={`flex-1 py-3 px-2 rounded transition-all text-sm font-bold group border border-transparent ${
+                        selectedSide === "fail"
+                          ? "bg-[#2b2839] text-white border-white/20"
+                          : "text-[#a19db9] hover:bg-[#2b2839]"
+                      }`}
+                      title="Bet that the AI will NOT be breached"
                     >
-                      {val}
+                      <span className="block text-xs font-normal mb-1 text-red-400">
+                        FAIL
+                      </span>
+                      <span className="text-lg">
+                        {marketStats.failMultiplier === "∞"
+                          ? "∞"
+                          : `${marketStats.failMultiplier}x`}
+                      </span>
+                      <span className="block text-[10px] text-[#56526e] mt-1">
+                        current odds
+                      </span>
                     </button>
-                  ))}
-                </div>
-              </div>
+                    <button
+                      onClick={() => setSelectedSide("breach")}
+                      className={`flex-1 py-3 px-2 rounded transition-all text-sm font-bold border ${
+                        selectedSide === "breach"
+                          ? "bg-primary/20 border-primary text-white"
+                          : "border-transparent text-primary/70 hover:bg-primary/5"
+                      }`}
+                      title="Bet that someone WILL breach the AI"
+                    >
+                      <span className="block text-xs font-normal mb-1 text-primary">
+                        BREACH
+                      </span>
+                      <span className="text-lg">
+                        {marketStats.breachMultiplier === "∞"
+                          ? "∞"
+                          : `${marketStats.breachMultiplier}x`}
+                      </span>
+                      <span className="block text-[10px] text-[#56526e] mt-1">
+                        current odds
+                      </span>
+                    </button>
+                  </div>
 
-              <button
-                onClick={handlePlaceBet}
-                disabled={placePredictionMutation.isPending}
-                className="w-full mt-6 bg-primary hover:bg-[#2a0eb5] text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {placePredictionMutation.isPending ? (
-                  <span className="material-symbols-outlined animate-spin">
-                    refresh
-                  </span>
-                ) : (
-                  <>
-                    <span>PLACE PREDICTION</span>
-                    <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
-                      arrow_forward
-                    </span>
-                  </>
-                )}
-              </button>
-              <p className="text-center text-[#56526e] text-xs mt-3">
-                Gas fees included. Bets are final.
-              </p>
+                  {/* Odds Explanation */}
+                  <p className="text-[#56526e] text-[10px] mb-4 text-center leading-relaxed">
+                    Odds update in real-time based on total bets. Winners split
+                    the losing pool proportionally.
+                  </p>
+                  {/* Wager Input */}
+                  <div className="space-y-3">
+                    <label className="text-[#a19db9] text-xs uppercase font-bold tracking-wider flex justify-between">
+                      <span>Wager Amount</span>
+                      <span className="text-white">
+                        Selected: {selectedSide.toUpperCase()}
+                      </span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        value={wager}
+                        onChange={(e) => setWager(e.target.value)}
+                        className="w-full bg-[#0c0b10] border border-[#3f3b54] rounded-lg py-3 pl-4 pr-12 text-white font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                        placeholder="0.00"
+                        type="number"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#56526e] text-sm font-bold">
+                        SOL
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[0.05, 0.1, 0.5, 1.0].map((val) => (
+                        <button
+                          key={val}
+                          onClick={() => setWager(val.toString())}
+                          className="bg-[#2b2839] hover:bg-[#3f3b54] text-xs font-bold py-2 rounded text-[#a19db9] hover:text-white transition-colors"
+                        >
+                          {val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Place Bet Button */}
+                  <button
+                    onClick={handlePlaceBet}
+                    disabled={
+                      placePredictionMutation.isPending || !wager || !connected
+                    }
+                    className="w-full mt-6 bg-primary hover:bg-[#2a0eb5] text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {placePredictionMutation.isPending ? (
+                      <span className="material-symbols-outlined animate-spin">
+                        refresh
+                      </span>
+                    ) : (
+                      <>
+                        <span>PLACE PREDICTION</span>
+                        <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
+                          arrow_forward
+                        </span>
+                      </>
+                    )}
+                  </button>
+                  <p className="text-center text-[#56526e] text-xs mt-3">
+                    {selectedSide === "fail"
+                      ? `FAIL at ${
+                          marketStats.failMultiplier === "∞"
+                            ? "∞"
+                            : `${marketStats.failMultiplier}x`
+                        } odds (may change)`
+                      : `BREACH at ${
+                          marketStats.breachMultiplier === "∞"
+                            ? "∞"
+                            : `${marketStats.breachMultiplier}x`
+                        } odds (may change)`}
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Recent Activity Information */}
