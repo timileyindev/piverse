@@ -153,7 +153,7 @@ export default function PredictionMarket() {
       console.log("Winnings claimed:", tx);
       alert("🎉 Winnings claimed successfully! Check your wallet.");
 
-      // Refresh prediction state
+      // Refresh prediction state .
       window.location.reload();
     } catch (error) {
       console.error("Claim failed:", error);
@@ -201,7 +201,7 @@ export default function PredictionMarket() {
             </div>
           </div>
 
-          {/* Terminal Window */}
+          {/* Terminal Window  */}
           <div
             ref={feedContainerRef}
             className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar relative flex flex-col-reverse"
