@@ -338,14 +338,14 @@ export default function PredictionMarket() {
 
         {/* Right Column: Stats & Betting (Sidebar) */}
         <aside
-          className={`fixed inset-0 z-40 bg-[#121118]/95 backdrop-blur-md lg:bg-[#121118] lg:static lg:inset-auto lg:w-[400px] border-l border-[#2b2839] flex flex-col shadow-[-10px_0_20px_rgba(0,0,0,0.5)] transition-transform duration-300 ${
+          className={`fixed inset-0 z-[100] bg-[#121118]/95 backdrop-blur-md lg:bg-[#121118] lg:static lg:inset-auto lg:w-[400px] border-l border-[#2b2839] flex flex-col shadow-[-10px_0_20px_rgba(0,0,0,0.5)] transition-transform duration-300 ${
             showMobileBetting
               ? "translate-x-0"
               : "translate-x-full lg:translate-x-0"
           }`}
         >
           {/* Mobile Header for Sidebar */}
-          <div className="flex lg:hidden items-center justify-between p-4 border-b border-[#2b2839] bg-[#121118]">
+          <div className="flex lg:hidden items-center justify-between p-4 border-b border-[#2b2839] bg-[#121118] shrink-0 sticky top-0 z-50">
             <h3 className="text-white font-bold tracking-wider uppercase flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">
                 analytics
@@ -354,7 +354,7 @@ export default function PredictionMarket() {
             </h3>
             <button
               onClick={() => setShowMobileBetting(false)}
-              className="size-8 flex items-center justify-center rounded bg-[#2b2839] text-[#a19db9] hover:text-white"
+              className="size-10 flex items-center justify-center rounded-lg bg-[#2b2839] text-[#a19db9] hover:bg-red-500/20 hover:text-red-500 transition-all border border-[#3f3b54]"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
