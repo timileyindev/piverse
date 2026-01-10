@@ -68,3 +68,17 @@
     transform: translateY(0);
   }
 }
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+  }
+  50%,
+  100% {
+    transform: translateX(150%) skewX(-15deg);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}

@@ -66,9 +66,10 @@ export default function AccessPage({ onEnter }) {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowHowToPlay(true)}
-              className="bg-primary/20 hover:bg-primary/30 text-primary hover:text-white border border-primary/50 hover:border-primary px-3 py-1.5 rounded text-[10px] sm:text-xs font-bold tracking-wider transition-all shadow-[0_0_10px_-3px_rgba(55,19,236,0.3)] hover:shadow-[0_0_15px_-3px_rgba(55,19,236,0.6)] animate-pulse hover:animate-none"
+              className="relative overflow-hidden group bg-primary hover:bg-primary/90 text-white border border-white/20 hover:border-white/50 px-4 py-1.5 rounded text-[10px] sm:text-xs font-bold tracking-wider transition-all shadow-[0_0_20px_rgba(55,19,236,0.6)] hover:shadow-[0_0_30px_rgba(55,19,236,0.9)]"
             >
-              [ HOW TO PLAY ]
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full animate-shimmer pointer-events-none"></span>
+              <span className="relative z-10">[ HOW TO PLAY ]</span>
             </button>
             <div className="flex items-center gap-2">
               <div
