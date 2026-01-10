@@ -17,10 +17,12 @@ export default function Header() {
   return (
     <header className="flex-none flex items-center justify-between whitespace-nowrap border-b border-dashed border-[#2b2839] bg-[#121118]/80 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 z-50 relative">
       <div className="flex items-center gap-3 sm:gap-4 text-white">
-        <div className="size-5 sm:size-6 text-primary flex items-center justify-center">
-          <span className="material-symbols-outlined text-xl sm:text-[28px] animate-pulse">
-            vpn_key
-          </span>
+        <div className="size-8 sm:size-10 flex items-center justify-center">
+          <img
+            src="/favicon.svg"
+            alt="Pi Verse Logo"
+            className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]"
+          />
         </div>
         <h2 className="text-white text-lg sm:text-xl font-bold leading-tight tracking-widest uppercase glow-text border-b-2 border-transparent hover:border-primary transition-all">
           PI VERSE

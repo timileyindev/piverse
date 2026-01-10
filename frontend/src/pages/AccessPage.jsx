@@ -44,9 +44,13 @@ export default function AccessPage({ onEnter }) {
         {/* Header / Status Bar */}
         <header className="flex items-center justify-between whitespace-nowrap border-b border-[#2b2839] bg-[#1a1823] px-4 sm:px-6 py-3">
           <div className="flex items-center gap-2 sm:gap-3 text-white">
-            <span className="material-symbols-outlined text-primary text-lg sm:text-xl">
-              terminal
-            </span>
+            <div className="size-5 sm:size-6 flex items-center justify-center">
+              <img
+                src="/favicon.svg"
+                alt="Pi Verse Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
             <h2 className="text-white text-xs sm:text-sm font-bold tracking-[0.1em]">
               // PI VERSE ACCESS TERMINAL
             </h2>

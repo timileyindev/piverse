@@ -4,12 +4,25 @@ const GameStateSchema = new mongoose.Schema({
   sessionId: {
     type: String,
     required: true,
-    unique: true, // e.g. "session_1"
+    unique: true,
     default: () => "session_" + Date.now()
+  },
+  name: {
+    type: String,
+    default: "PI VERSE"
+  },
+  gameId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  pda: {
+    type: String, // The PDA for the on-chain GameState account
+    default: null
   },
   jackpot: {
     type: Number,
-    default: 1000, 
+    default: 0
   },
   status: {
     type: String,
@@ -17,7 +30,7 @@ const GameStateSchema = new mongoose.Schema({
     default: 'active'
   },
   keyHolder: {
-    type: String, // Wallet address of the winner
+    type: String,
     default: null
   },
   totalAttempts: {
@@ -26,7 +39,7 @@ const GameStateSchema = new mongoose.Schema({
   },
   minAttemptsBeforeYield: {
     type: Number,
-    default: 500 // AI will forcefully reject everything before this
+    default: 500
   },
   startTime: {
     type: Date,

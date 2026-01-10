@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("35QKVwHG21TcPWps58pB7shMB7W3npvSFjJD9C6SGjib");
+declare_id!("6fuSCXdjP9wKi8GE8xXZkCERS1rrvFfuxSVK5sySazh6");
 
 #[program]
 pub mod piverse {
@@ -10,15 +10,19 @@ pub mod piverse {
 
     pub fn initialize_game(
         ctx: Context<InitializeGame>, 
+        game_id: u64,
         duration_seconds: i64,
         attempt_price: u64,
-        ghost: Pubkey // Admin/Emergency Key
+        ghost: Pubkey,
+        dev_wallet: Pubkey
     ) -> Result<()> {
         let game = &mut ctx.accounts.game_state;
         let clock = Clock::get()?;
 
+        game.game_id = game_id;
         game.authority = *ctx.accounts.authority.key;
         game.ghost = ghost;
+        game.dev_wallet = dev_wallet;
         game.jackpot = 0;
         game.total_attempts = 0;
         game.is_active = true;
@@ -32,6 +36,7 @@ pub mod piverse {
         game.pool_fail = 0;
         game.pool_breach = 0;
         game.market_status = MarketStatus::Active;
+        game.bump = ctx.bumps.game_state;
         
         Ok(())
     }
@@ -49,14 +54,13 @@ pub mod piverse {
         let treasury_share = payment_amount * 20 / 100; // 20%
         let jackpot_share = payment_amount - treasury_share; // 80%
 
-        // 1. Transfer to Treasury (Direct Transfer - Funds leave contract immediately)
-        // This satisfies "funds ... withdrawable by authority" implicitly if authority owns this key.
+        // 1. Transfer to Dev Wallet (20% revenue share)
         anchor_lang::system_program::transfer(
             CpiContext::new(
                 ctx.accounts.system_program.to_account_info(),
                 anchor_lang::system_program::Transfer {
                     from: ctx.accounts.user.to_account_info(),
-                    to: ctx.accounts.treasury.to_account_info(),
+                    to: ctx.accounts.dev_wallet.to_account_info(),
                 },
             ),
             treasury_share,
@@ -239,8 +243,10 @@ pub mod piverse {
 
 #[account]
 pub struct GameState {
+    pub game_id: u64,
     pub authority: Pubkey,
-    pub ghost: Pubkey, // Emergency Withdrawer
+    pub ghost: Pubkey,
+    pub dev_wallet: Pubkey,
     pub jackpot: u64,
     pub total_attempts: u64,
     pub is_active: bool,
@@ -255,6 +261,7 @@ pub struct GameState {
     pub pool_fail: u64,
     pub pool_breach: u64,
     pub market_status: MarketStatus,
+    pub bump: u8,
 }
 
 #[account]
@@ -282,8 +289,15 @@ pub enum MarketStatus {
 // --- CONTEXTS ---
 
 #[derive(Accounts)]
+#[instruction(game_id: u64)]
 pub struct InitializeGame<'info> {
-    #[account(init, payer = authority, space = 8 + 32 + 32 + 8 + 8 + 1 + 33 + 8 + 8 + 8 + 8 + 8 + 1 + 50)]
+    #[account(
+        init, 
+        seeds = [b"game_state", game_id.to_le_bytes().as_ref()],
+        bump,
+        payer = authority, 
+        space = 8 + 8 + 32 + 32 + 32 + 8 + 8 + 1 + 33 + 8 + 8 + 8 + 8 + 8 + 1 + 1 + 50
+    )]
     pub game_state: Account<'info, GameState>,
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -299,9 +313,9 @@ pub struct SubmitAttempt<'info> {
     #[account(mut, seeds = [b"game_vault", game_state.key().as_ref()], bump)]
     /// CHECK: PDA for jackpot
     pub game_vault: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK: Treasury wallet
-    pub treasury: AccountInfo<'info>,
+    #[account(mut, address = game_state.dev_wallet)]
+    /// CHECK: Dev wallet for revenue - validated against stored address
+    pub dev_wallet: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -345,7 +359,13 @@ pub struct EmergencyWithdrawMarket<'info> {
 pub struct PlacePrediction<'info> {
     #[account(mut)]
     pub game_state: Account<'info, GameState>,
-    #[account(init, payer = user, space = 8 + 32 + 32 + 8 + 1 + 1)]
+    #[account(
+        init, 
+        seeds = [b"prediction", game_state.key().as_ref(), user.key().as_ref()],
+        bump,
+        payer = user, 
+        space = 8 + 32 + 32 + 8 + 1 + 1
+    )]
     pub prediction: Account<'info, Prediction>,
     #[account(mut)]
     pub user: Signer<'info>,

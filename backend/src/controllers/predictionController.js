@@ -1,6 +1,6 @@
 const GameState = require('../models/GameState');
 const Prediction = require('../models/Prediction');
-const { verifyTransaction } = require('../services/solana');
+const { verifyTransactionSimple } = require('../services/solana');
 
 // Calculate dynamic multipliers based on pool balance (Simplified AMM logic)
 const calculateMultipliers = async (gameStateId) => {
@@ -28,11 +28,30 @@ exports.placePrediction = async (req, res) => {
     const { walletAddress, type, amount, txSignature } = req.body;
     const io = req.app.get('io');
     
+    // Validate inputs
+    if (!walletAddress || !type || !amount || !txSignature) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (!['fail', 'breach'].includes(type)) {
+        return res.status(400).json({ error: 'Invalid prediction type. Must be "fail" or "breach".' });
+    }
+
     try {
-        // 0. Verify Payment
-        const isPaymentValid = await verifyTransaction(txSignature, walletAddress, Number(amount));
+        // Verify transaction exists and was signed by sender
+        // Note: Smart contract handles the actual payment verification
+        const isPaymentValid = await verifyTransactionSimple(txSignature, walletAddress, 'PlacePrediction');
         if (!isPaymentValid) {
             return res.status(402).json({ error: 'Payment verification failed' });
+        }
+
+        // Check for Replay Attack
+        const existingPrediction = await Prediction.findOne({ txSignature });
+        // Also check Messages just in case they try to cross-use txs (unlikely due to amount check differences, but safe)
+        // const existingMessage = await Message.findOne({ txSignature }); 
+        
+        if (existingPrediction) {
+            return res.status(400).json({ error: 'Transaction already used.' });
         }
 
         // 1. Get Active Game
@@ -94,3 +113,4 @@ exports.getUserPredictions = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 }
+

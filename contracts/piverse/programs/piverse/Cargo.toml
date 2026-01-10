@@ -9,14 +9,20 @@ crate-type = ["cdylib", "lib"]
 name = "piverse"
 
 [features]
+default = []
+cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-cpi = ["no-entrypoint"]
-default = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
 
 [dependencies]
-anchor-lang = "0.29.0"
-constant_time_eq = "=0.3.0"
-blake3 = "=1.5.0"
-solana-program = "=1.18.23"
+anchor-lang = "0.32.1"
+
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

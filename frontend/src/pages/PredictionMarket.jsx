@@ -1,98 +1,117 @@
 import React, { useState } from "react";
-import { Link } from "wouter";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import {
-  SystemProgram,
-  Transaction,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-} from "@solana/web3.js";
+import { SystemProgram, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { BN, AnchorProvider, Program } from "@coral-xyz/anchor";
 import Header from "../components/Header";
+import TransactionLoader from "../components/TransactionLoader";
 import {
   useLiveFeed,
   useGameStats,
   useMarketStats,
   usePlacePrediction,
-  useUserPredictions,
+  useActivePrediction,
 } from "../hooks/useGameData";
-
-// Same as backend logic
-const TREASURY_WALLET = new PublicKey(
-  "8c71AvjQeKKeWRe8izt8yJ5aFqH4r52656p475141646"
-);
+import { useSolanaConfig } from "../context/ConfigContext";
+import Countdown from "../components/Countdown";
 
 export default function PredictionMarket() {
-  const { connected, publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
-  const [wager, setWager] = useState("");
-  const [selectedSide, setSelectedSide] = useState("breach"); // 'fail' or 'breach'
-  const [showMobileBetting, setShowMobileBetting] = useState(false);
+  const { idl } = useSolanaConfig();
+  const wallet = useWallet();
+  const { publicKey } = wallet;
 
-  // Hook integrations
+  const [wager, setWager] = useState("");
+  const [selectedSide, setSelectedSide] = useState("fail");
+  const [showMobileBetting, setShowMobileBetting] = useState(false);
+  const [isTransacting, setIsTransacting] = useState(false);
+
   const { data: feedData = [] } = useLiveFeed();
-  const {
-    data: gameStats = { jackpot: 1000, totalAttempts: 0 },
-    watcherCount,
-  } = useGameStats();
-  const { data: marketStats = { failMultiplier: 1.0, breachMultiplier: 1.0 } } =
-    useMarketStats();
-  const { data: userPredictions = [] } = useUserPredictions(
-    publicKey?.toString()
-  );
+  const { data: gameStats, watcherCount } = useGameStats();
+  const { data: marketStats } = useMarketStats();
+  const { data: activePrediction, isLoading: isLoadingPrediction } =
+    useActivePrediction(publicKey?.toString(), gameStats);
   const placePredictionMutation = usePlacePrediction();
 
-  const handlePlaceBet = async () => {
-    if (!connected || !publicKey) {
-      alert("Please connect wallet first");
-      return;
-    }
-    const amountVal = parseFloat(wager);
-    if (!wager || isNaN(amountVal) || amountVal <= 0) {
-      alert("Invalid wager amount");
-      return;
-    }
-
-    try {
-      // 1. Create Transaction
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: TREASURY_WALLET,
-          lamports: amountVal * LAMPORTS_PER_SOL,
-        })
-      );
-
-      // 2. Sign & Send
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = publicKey;
-
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature, "confirmed");
-
-      // 3. Backend Call
-      await placePredictionMutation.mutateAsync({
-        walletAddress: publicKey.toString(),
-        type: selectedSide,
-        amount: amountVal,
-        txSignature: signature,
-      });
-
-      alert("Prediction Placed!");
-      setWager("");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to place prediction: " + (err.message || "Unknown Error"));
-    }
-  };
-
+  const connected = !!publicKey;
   const truncatedAddress = publicKey
     ? `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`
-    : "Connect Wallet";
+    : "NOT CONNECTED";
+
+  if (!gameStats || !marketStats) {
+    return (
+      <div className="h-screen w-full bg-[#121118] flex items-center justify-center text-primary font-mono animate-pulse">
+        LOADING MARKET DATA...
+      </div>
+    );
+  }
+
+  const handlePlaceBet = async () => {
+    if (!wallet.publicKey || !wager) return;
+
+    setIsTransacting(true);
+    try {
+      const provider = new AnchorProvider(connection, wallet, {
+        preflightCommitment: "processed",
+      });
+      const program = new Program(idl, provider);
+      const programPubkey = new PublicKey(idl.address);
+
+      // Derive Market Vault PDA
+      // Seeds: [b"market_vault", game_state_key.as_ref()]
+      // Note: We use the PDA from the gameStats as the game_state key
+      const gameStatePubkey = new PublicKey(gameStats.pda);
+
+      const [marketVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("market_vault"), gameStatePubkey.toBuffer()],
+        programPubkey
+      );
+
+      // Derive Prediction PDA (Deterministic: User can only bet ONCE per game session)
+      const [predictionPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("prediction"),
+          gameStatePubkey.toBuffer(),
+          wallet.publicKey.toBuffer(),
+        ],
+        programPubkey
+      );
+
+      const sideEnum = selectedSide === "fail" ? { fail: {} } : { breach: {} };
+      const amount = new BN(parseFloat(wager) * LAMPORTS_PER_SOL);
+
+      const tx = await program.methods
+        .placePrediction(sideEnum, amount)
+        .accounts({
+          gameState: gameStatePubkey,
+          prediction: predictionPda,
+          user: wallet.publicKey,
+          marketVault: marketVaultPda,
+          systemProgram: SystemProgram.programId,
+        })
+
+        .rpc();
+
+      console.log("Prediction placed:", tx);
+
+      // OPTIONAL: Send to backend to track prediction immediately (though webhook/indexer is better)
+      await placePredictionMutation.mutateAsync({
+        walletAddress: wallet.publicKey.toString(),
+        type: selectedSide,
+        amount: wager,
+        txSignature: tx,
+      });
+    } catch (error) {
+      console.error("Prediction failed:", error);
+      alert("Transaction failed: " + error.message);
+    } finally {
+      setIsTransacting(false);
+    }
+  };
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-white h-screen flex flex-col overflow-hidden relative">
       <Header />
+      <TransactionLoader open={isTransacting} />
 
       {/* Main Content Layout */}
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
@@ -121,12 +140,6 @@ export default function PredictionMarket() {
           <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar relative flex flex-col-reverse">
             <div className="absolute inset-0 pointer-events-none z-20 opacity-30 bg-[linear-gradient(to_bottom,rgba(255,255,255,0),rgba(255,255,255,0)_50%,rgba(0,0,0,0.2)_50%,rgba(0,0,0,0.2))] bg-[length:100%_4px]"></div>
             <div className="max-w-4xl w-full mx-auto flex flex-col-reverse gap-6 pb-24 lg:pb-10">
-              {/* Note: feedData is fetched newest-first. We map it directly, but since we use flex-col-reverse,
-                  the first item in DOM (newest) appears at the bottom.
-                  Wait, if flex-col-reverse is used, the LAST element in HTML is at the TOP of the container.
-                  The FIRST element in HTML is at the BOTTOM.
-                  So if feedData[0] is newest, it should be the FIRST element in HTML to appear at the bottom.
-                  So we just map feedData. */}
               {feedData.map((item) => {
                 const isUser = item.role === "user";
                 const timestamp = new Date(
@@ -203,10 +216,16 @@ export default function PredictionMarket() {
                 info
               </span>
               <span>
-                Session Status:{" "}
+                {gameStats?.name}:{" "}
                 <span className="text-white font-mono uppercase">
-                  {gameStats.status || "ACTIVE"}
+                  {gameStats?.status}
                 </span>
+              </span>
+              <span className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-[#2b2839]">
+                <span className="material-symbols-outlined text-[16px]">
+                  timer
+                </span>
+                <Countdown targetDate={gameStats?.endTime} minimal={true} />
               </span>
             </div>
             <div className="flex gap-4 text-xs sm:text-sm">
@@ -279,7 +298,7 @@ export default function PredictionMarket() {
                   Jackpot Pool
                 </p>
                 <p className="text-white text-lg font-bold font-mono">
-                  ${gameStats.jackpot.toLocaleString()}
+                  {gameStats.jackpot.toLocaleString()} SOL
                 </p>
                 <div className="flex items-center text-[#0bda6c] text-xs font-bold gap-1">
                   <span className="material-symbols-outlined text-[14px]">
@@ -405,47 +424,43 @@ export default function PredictionMarket() {
                 My Recent Bets
               </h4>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                {userPredictions?.map((pred) => (
-                  <div
-                    key={pred._id}
-                    className="bg-[#1c1929] p-2 rounded border border-[#2b2839] flex justify-between items-center text-xs hover:border-primary/30 transition-colors"
-                  >
+                {activePrediction ? (
+                  <div className="bg-[#1c1929] p-2 rounded border border-[#2b2839] flex justify-between items-center text-xs hover:border-primary/30 transition-colors">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span
                           className={`font-bold ${
-                            pred.type === "breach"
+                            activePrediction.side === "breach"
                               ? "text-primary"
                               : "text-red-400"
-                          }`}
+                          } uppercase`}
                         >
-                          {pred.type.toUpperCase()}
+                          {activePrediction.side}
                         </span>
-                        {pred.status === "won" && (
+                        {activePrediction.claimed && (
                           <span className="text-green-500 text-[10px] font-bold">
-                            WIN
+                            CLAIMED
                           </span>
                         )}
                       </div>
                       <span className="text-[#56526e] text-[10px]">
-                        {new Date(
-                          pred.createdAt || Date.now()
-                        ).toLocaleTimeString()}
+                        ACTIVE SESSION BET
                       </span>
                     </div>
                     <div className="text-right">
                       <div className="text-white font-mono">
-                        {pred.amount} SOL
-                      </div>
-                      <div className="text-[#a19db9] text-[10px]">
-                        x{pred.payoutMultiplier}
+                        {(
+                          parseInt(activePrediction.amount) / LAMPORTS_PER_SOL
+                        ).toFixed(2)}{" "}
+                        SOL
                       </div>
                     </div>
                   </div>
-                ))}
-                {(!userPredictions || userPredictions.length === 0) && (
+                ) : (
                   <p className="text-[#56526e] text-xs text-center py-2 italic">
-                    No active bets
+                    {isLoadingPrediction
+                      ? "Checking blockchain..."
+                      : "No active bets in this session"}
                   </p>
                 )}
               </div>

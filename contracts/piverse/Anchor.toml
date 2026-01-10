@@ -1,20 +1,22 @@
 [toolchain]
-anchor_version = "0.29.0"
 
 [features]
-seeds = false
+resolution = true
 skip-lint = false
 
 [programs.localnet]
-piverse = "35QKVwHG21TcPWps58pB7shMB7W3npvSFjJD9C6SGjib"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+piverse = "6fuSCXdjP9wKi8GE8xXZkCERS1rrvFfuxSVK5sySazh6"
+
+[programs.devnet]
+piverse = "6fuSCXdjP9wKi8GE8xXZkCERS1rrvFfuxSVK5sySazh6"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
-                                                                                                                                                                    
+init = "npx ts-node scripts/initialize-game.ts"

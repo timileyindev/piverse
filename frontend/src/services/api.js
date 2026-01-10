@@ -35,3 +35,8 @@ export const sendChatMessage = async ({ walletAddress, message, txSignature }) =
     const { data } = await api.post('/chat', { walletAddress, message, txSignature });
     return data;
 };
+
+export const fetchConfig = async () => {
+    const { data } = await api.get('/config');
+    return data;
+};

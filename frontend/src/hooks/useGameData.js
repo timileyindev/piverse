@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { socket } from '../services/socket';
 import * as api from '../services/api';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { useSolanaConfig } from '../context/ConfigContext';
+import { AnchorProvider, Program } from '@coral-xyz/anchor';
+import { PublicKey } from '@solana/web3.js';
 
 export function useLiveFeed() {
   const queryClient = useQueryClient();
@@ -31,28 +35,93 @@ export function useLiveFeed() {
 }
 
 export function useGameStats() {
-    const queryClient = useQueryClient();
+    const { connection } = useConnection();
+    const config = useSolanaConfig();
+    const { programId, idl, isLoading: configLoading } = config;
     const [watcherCount, setWatcherCount] = useState(0);
 
     const query = useQuery({
-        queryKey: ['stats'],
-        queryFn: api.fetchStats,
+        queryKey: ['gameStats', programId?.toString()],
+        queryFn: async () => {
+             if (!programId || !idl) {
+                 throw new Error("Program not loaded");
+             }
+             
+             // Get the current game ID from the backend
+             const backendStats = await api.fetchStats();
+             
+             if (!backendStats?.gameId) {
+                 return {
+                     status: "not_initialized",
+                     name: "OFFLINE",
+                     jackpot: 0,
+                     totalAttempts: 0,
+                     attemptPrice: 0.01,
+                     pda: null,
+                     gameId: null,
+                     devWallet: null,
+                     initialized: false
+                 };
+             }
+
+             // Derive PDA locally from gameId
+             const gameIdBN = BigInt(backendStats.gameId);
+             const gameIdBuffer = Buffer.alloc(8);
+             gameIdBuffer.writeBigUInt64LE(gameIdBN);
+             
+             const [gameStatePda] = PublicKey.findProgramAddressSync(
+                 [Buffer.from("game_state"), gameIdBuffer],
+                 programId
+             );
+
+             const provider = new AnchorProvider(connection, { publicKey: PublicKey.default }, { preflightCommitment: "processed" });
+             const program = new Program(idl, provider);
+
+             try {
+                 const account = await program.account.gameState.fetch(gameStatePda);
+                 
+                 return {
+                     status: account.isActive ? "active" : "inactive",
+                     name: backendStats?.name,
+                     jackpot: account.jackpot.toNumber() / 1000000000,
+                     totalAttempts: account.totalAttempts.toNumber(),
+                     attemptPrice: account.attemptPrice.toNumber() / 1000000000,
+                     pda: gameStatePda.toString(),
+                     gameId: backendStats.gameId,
+                     devWallet: account.devWallet.toString(),
+                     endTime: account.endTime.toNumber() * 1000,
+                     initialized: true
+                 };
+             } catch (e) {
+                 console.warn('[useGameStats] On-chain fetch failed:', e.message);
+                 return {
+                     status: "error",
+                     name: backendStats?.name,
+                     jackpot: 0,
+                     totalAttempts: 0,
+                     attemptPrice: 0.01,
+                     pda: gameStatePda.toString(),
+                     gameId: backendStats.gameId,
+                     devWallet: null,
+                     endTime: null,
+                     initialized: false
+                 };
+             }
+        },
+        refetchInterval: 10000,
+        enabled: !configLoading && !!programId && !!idl,
+        retry: 2,
     });
 
     useEffect(() => {
-        socket.on('stats_update', (newStats) => {
-            queryClient.setQueryData(['stats'], (old) => ({...old, ...newStats}));
-        });
-
         socket.on('watcher_count', (count) => {
             setWatcherCount(count);
         });
 
         return () => {
-             socket.off('stats_update');
              socket.off('watcher_count');
         }
-    }, [queryClient]);
+    }, []);
 
     return { ...query, watcherCount };
 }
@@ -100,4 +169,43 @@ export function useSendChatMessage() {
      return useMutation({
         mutationFn: api.sendChatMessage,
      });
+}
+
+export function useActivePrediction(walletAddress, gameStats) {
+  const { connection } = useConnection();
+  const { programId, idl } = useSolanaConfig();
+  
+  return useQuery({
+      queryKey: ['activePrediction', walletAddress, gameStats?.pda],
+      queryFn: async () => {
+          if (!walletAddress || !gameStats?.pda || !programId || !idl) return null;
+          
+          const provider = new AnchorProvider(connection, { publicKey: new PublicKey(walletAddress) }, { preflightCommitment: "processed" });
+          const program = new Program(idl, programId, provider);
+
+          const gameStatePubkey = new PublicKey(gameStats.pda);
+          const [predictionPda] = PublicKey.findProgramAddressSync(
+              [
+                Buffer.from("prediction"), 
+                gameStatePubkey.toBuffer(), 
+                new PublicKey(walletAddress).toBuffer()
+              ],
+              program.programId
+          );
+
+          try {
+              const account = await program.account.prediction.fetch(predictionPda);
+              return {
+                  amount: account.amount.toString(),
+                  side: Object.keys(account.side)[0], // { fail: {} } -> 'fail'
+                  claimed: account.claimed,
+                  pda: predictionPda.toString()
+              };
+          } catch (e) {
+              // Account likely doesn't exist yet (User hasn't bet)
+              return null;
+          }
+      },
+      enabled: !!walletAddress && !!gameStats?.pda && !!programId
+  });
 }

@@ -8,6 +8,9 @@ router.post('/chat', chatController.handleChat);
 router.get('/feed', chatController.getFeed);
 router.get('/stats', chatController.getStats);
 
+// Admin Routes
+router.post('/admin/register-game', chatController.registerGame);
+
 // Prediction Market Routes
 router.post('/predict', predictionController.placePrediction);
 router.get('/market', predictionController.getMarketStats);

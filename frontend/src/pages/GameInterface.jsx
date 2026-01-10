@@ -1,23 +1,30 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import {
-  SystemProgram,
-  Transaction,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-} from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import Header from "../components/Header";
+import TransactionLoader from "../components/TransactionLoader";
+import Countdown from "../components/Countdown";
 import { useGameStats, useSendChatMessage } from "../hooks/useGameData";
+import { useSolanaConfig } from "../context/ConfigContext";
 
-// Same as backend
-const TREASURY_WALLET = new PublicKey(
-  "8c71AvjQeKKeWRe8izt8yJ5aFqH4r52656p475141646"
-);
-const COST_SOL = 0.01;
+async function hashMessage(message) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32);
+}
 
 export default function GameInterface() {
-  const { publicKey, sendTransaction } = useWallet();
+  const wallet = useWallet();
+  const { publicKey } = wallet;
   const { connection } = useConnection();
+  const { idl } = useSolanaConfig();
+
   const [messages, setMessages] = useState([
     {
       type: "system",
@@ -32,13 +39,11 @@ export default function GameInterface() {
   const [inputValue, setInputValue] = useState("");
   const [latency, setLatency] = useState(12);
   const [cpu, setCpu] = useState(4);
+  const [isTransacting, setIsTransacting] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Hook integrations
-  const {
-    data: gameStats = { jackpot: 1000, totalAttempts: 0, status: "active" },
-    watcherCount,
-  } = useGameStats();
+  const { data: gameStats, watcherCount } = useGameStats();
+
   const sendChatMessageMutation = useSendChatMessage();
 
   const scrollToBottom = () => {
@@ -49,7 +54,6 @@ export default function GameInterface() {
     scrollToBottom();
   }, [messages]);
 
-  // Simulate dynamic stats
   useEffect(() => {
     const interval = setInterval(() => {
       setLatency(Math.floor(Math.random() * (45 - 10 + 1) + 10));
@@ -67,35 +71,41 @@ export default function GameInterface() {
     }
 
     const messageContent = inputValue;
-
-    // Optimistic UI Update (User message)
     const userMsg = { type: "user", content: messageContent };
     setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
 
+    setIsTransacting(true);
     let signature = null;
 
     try {
-      // 1. Create Solana Transaction
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: TREASURY_WALLET,
-          lamports: COST_SOL * LAMPORTS_PER_SOL,
-        })
+      const provider = new AnchorProvider(connection, wallet, {
+        preflightCommitment: "processed",
+      });
+      const program = new Program(idl, provider);
+
+      const gameStatePubkey = new PublicKey(gameStats.pda);
+
+      const [gameVaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("game_vault"), gameStatePubkey.toBuffer()],
+        new PublicKey(idl.address)
       );
 
-      // 2. Prompt Wallet to Sign & Send
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = publicKey;
+      const messageHash = await hashMessage(messageContent);
 
-      signature = await sendTransaction(transaction, connection);
+      const tx = await program.methods
+        .submitAttempt(messageHash)
+        .accounts({
+          gameState: gameStatePubkey,
+          user: publicKey,
+          gameVault: gameVaultPda,
+          devWallet: new PublicKey(gameStats.devWallet),
+        })
+        .rpc();
 
-      // 3. Confirm Transaction locally
-      await connection.confirmTransaction(signature, "confirmed");
+      signature = tx;
+      setIsTransacting(false);
 
-      // 4. Send to Backend
       const response = await sendChatMessageMutation.mutateAsync({
         walletAddress: publicKey.toString(),
         message: messageContent,
@@ -122,11 +132,18 @@ export default function GameInterface() {
         ]);
       }
     } catch (error) {
+      setIsTransacting(false);
       console.error(error);
       let errorText = "TRANSMISSION FAILED.";
 
       if (error.message && error.message.includes("User rejected")) {
         errorText = "TRANSACTION REJECTED BY USER.";
+      } else if (
+        error.message &&
+        error.message.includes("Game Session not initialized")
+      ) {
+        // This catches the explicit throw from earlier
+        errorText = "SYSTEM ERROR: GAME SESSION NOT FOUND.";
       } else if (!signature) {
         errorText = "PAYMENT FAILED. INSUFFICIENT FUNDS OR NETWORK ERROR.";
       }
@@ -139,10 +156,17 @@ export default function GameInterface() {
     }
   };
 
+  if (!gameStats) {
+    return (
+      <div className="h-screen w-full bg-[#121118] flex items-center justify-center text-primary font-mono animate-pulse">
+        CONNECTING TO MAINFRAME...
+      </div>
+    );
+  }
+
   const copyAddress = () => {
     if (publicKey) {
       navigator.clipboard.writeText(publicKey.toString());
-      // Optional: show toast
     }
   };
 
@@ -157,6 +181,7 @@ export default function GameInterface() {
       <div className="fixed inset-0 pointer-events-none z-50 opacity-20 bg-[linear-gradient(to_bottom,rgba(255,255,255,0),rgba(255,255,255,0)_50%,rgba(0,0,0,0.1)_50%,rgba(0,0,0,0.1))] [background-size:100%_4px]"></div>
 
       <Header />
+      <TransactionLoader open={isTransacting} />
 
       {/* Main Content Area - Flex-1 to fill remaining space */}
       <main className="flex-1 flex justify-center p-2 sm:p-6 lg:p-10 overflow-hidden relative w-full h-full">
@@ -182,37 +207,45 @@ export default function GameInterface() {
           {/* Terminal Body - Flex col to separate stats, chat, input */}
           <div className="flex flex-col h-full overflow-hidden">
             {/* Stats / Dashboard Area */}
-            <div className="flex-none grid grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-6 border-b border-[#2b2839]">
+            <div className="flex-none grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-6 border-b border-[#2b2839]">
               {/* Left: Status */}
               <div className="flex flex-col justify-center gap-0.5 sm:gap-1">
                 <div className="flex items-center gap-1 sm:gap-2 text-primary mb-1">
-                  <span className="material-symbols-outlined text-xs sm:text-sm">
-                    lock
+                  <span className="material-symbols-outlined text-xs sm:text-sm animate-pulse">
+                    sensors
                   </span>
                   <span className="text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase">
-                    DEFCON 4
+                    LIVE NODES: {watcherCount || 0}
                   </span>
                 </div>
                 <p className="text-white text-lg sm:text-2xl lg:text-3xl font-bold leading-none tracking-tight">
-                  {gameStats.status === "active" ? "SYSTEM_LOCK" : "BREACHED"}{" "}
+                  {gameStats?.name}
                   <br />
                   <span className="text-primary/70 text-sm sm:text-xl">
-                    // {gameStats.status === "active" ? "ACTIVE" : "FAILED"}
+                    // {gameStats.status === "active" ? "ACTIVE" : "OFFLINE"}
                   </span>
                 </p>
-                <div className="flex items-center gap-2 mt-1 sm:mt-2">
-                  <p className="text-[#a19db9] text-[10px] sm:text-xs font-mono">
-                    ID: {truncatedAddress}
-                  </p>
-                  <button
-                    onClick={copyAddress}
-                    className="text-[#a19db9] hover:text-white transition-colors"
-                    title="Copy Address"
-                  >
+                <div className="flex flex-col gap-1 mt-1 sm:mt-2">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[#a19db9] text-[10px] sm:text-xs font-mono">
+                      ID: {truncatedAddress}
+                    </p>
+                    <button
+                      onClick={copyAddress}
+                      className="text-[#a19db9] hover:text-white transition-colors"
+                      title="Copy Address"
+                    >
+                      <span className="material-symbols-outlined text-[10px] sm:text-xs">
+                        content_copy
+                      </span>
+                    </button>
+                  </div>
+                  <div className="text-[10px] sm:text-sm font-mono text-primary/80 flex items-center gap-2">
                     <span className="material-symbols-outlined text-[10px] sm:text-xs">
-                      content_copy
+                      timer
                     </span>
-                  </button>
+                    <Countdown targetDate={gameStats?.endTime} minimal={true} />
+                  </div>
                 </div>
               </div>
 
@@ -228,7 +261,7 @@ export default function GameInterface() {
                     </p>
                   </div>
                   <p className="text-white tracking-tight text-lg sm:text-2xl lg:text-3xl font-bold glow-text mt-1 sm:mt-2">
-                    ${gameStats.jackpot.toLocaleString()}
+                    {gameStats.jackpot.toLocaleString()} SOL
                   </p>
                 </div>
                 <div className="flex flex-1 flex-col justify-between rounded bg-[#1a1824] p-2 sm:p-4 border border-[#3f3b54]">
@@ -241,7 +274,11 @@ export default function GameInterface() {
                     </p>
                   </div>
                   <p className="text-red-400 tracking-tight text-base sm:text-xl lg:text-2xl font-bold mt-1 sm:mt-2">
-                    -$2.00
+                    -
+                    {gameStats.attemptPrice
+                      ? gameStats.attemptPrice.toFixed(2)
+                      : "0.00"}{" "}
+                    SOL
                   </p>
                 </div>
               </div>
