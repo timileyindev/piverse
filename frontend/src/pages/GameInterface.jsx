@@ -45,7 +45,7 @@ export default function GameInterface() {
   const [wonJackpot, setWonJackpot] = useState(0);
   const messagesEndRef = useRef(null);
 
-  const { data: gameStats, watcherCount } = useGameStats();
+  const { data: gameStats, watcherCount, isError, error } = useGameStats();
 
   const sendChatMessageMutation = useSendChatMessage();
 
@@ -257,6 +257,25 @@ export default function GameInterface() {
       );
     }
   };
+
+  if (isError || (gameStats && gameStats.status === "error")) {
+    return (
+      <div className="h-screen w-full bg-[#121118] flex flex-col items-center justify-center text-red-500 font-mono gap-4 p-4 text-center">
+        <span className="material-symbols-outlined text-4xl">error</span>
+        <h2 className="text-xl font-bold">CONNECTION FAILURE</h2>
+        <p className="text-sm text-[#a19db9] max-w-md">
+          {error?.message ||
+            "Failed to establish connection to game server mainframe."}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 border border-red-500 hover:bg-red-500/10 rounded transition-colors"
+        >
+          RETRY UPLINK
+        </button>
+      </div>
+    );
+  }
 
   if (!gameStats) {
     return (

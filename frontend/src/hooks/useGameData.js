@@ -66,6 +66,19 @@ export function useLiveFeed() {
 export function useGameStats() {
     const { connection } = useConnection();
     const config = useSolanaConfig();
+    // If config failed, return error immediately
+    if (config.error) {
+        return { 
+            data: null, 
+            watcherCount: 0, 
+            status: 'error',
+            isPending: false, 
+            isLoading: false, 
+            isError: true, 
+            error: new Error(config.error) 
+        };
+    }
+
     const { programId, idl, isLoading: configLoading } = config;
     const [watcherCount, setWatcherCount] = useState(0);
 
