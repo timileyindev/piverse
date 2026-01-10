@@ -82,6 +82,36 @@ export default function AccessPage({ onEnter }) {
             </p>
           </div>
 
+          {/* Socials & Contract Info */}
+          <div className="flex flex-wrap items-center gap-3 mb-6 sm:mb-8 font-mono text-xs sm:text-sm">
+            <a
+              href="https://x.com/piversedotfun?s=21"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#1d1c27] text-white px-3 py-2 rounded border border-[#3f3b54] hover:border-primary hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_15px_-5px_rgba(55,19,236,0.5)] transition-all duration-300 group"
+            >
+              {/* Minimal X Logo */}
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="h-4 w-4 fill-current"
+              >
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
+              </svg>
+              <span className="font-bold tracking-wide">@piversedotfun</span>
+            </a>
+
+            <div className="flex items-center gap-2 bg-[#1d1c27]/50 text-[#a19db9] px-3 py-2 rounded border border-[#3f3b54]/50 cursor-wait select-none">
+              <span className="material-symbols-outlined text-sm">token</span>
+              <span>
+                CA:{" "}
+                <span className="text-white/40 tracking-widest font-bold">
+                  COMING SOON
+                </span>
+              </span>
+            </div>
+          </div>
+
           {/* Terminal Output Simulation */}
           <div className="flex flex-col gap-1 mb-6 sm:mb-8 font-mono text-xs sm:text-sm text-primary/80 p-3 sm:p-4 rounded-lg bg-black/20 border border-white/5 h-24 sm:h-32 overflow-hidden">
             <p className="opacity-60">&gt; INITIATING HANDSHAKE PROTOCOL...</p>
@@ -108,6 +138,7 @@ export default function AccessPage({ onEnter }) {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4 mt-2">
               <button
+                disabled={connected}
                 onClick={() => {
                   if (connected) {
                     onEnter();
@@ -115,7 +146,7 @@ export default function AccessPage({ onEnter }) {
                     handleConnectClick();
                   }
                 }}
-                className="relative w-full sm:flex-1 group overflow-hidden rounded-lg bg-primary hover:bg-[#280bc4] transition-colors h-12 flex items-center justify-center text-white font-bold tracking-widest border border-transparent hover:border-white/20 hover:shadow-[0_0_20px_-5px_rgba(55,19,236,0.6)] text-sm sm:text-base"
+                className="disabled:opacity-50 disabled:pointer-events-none relative w-full sm:flex-1 group overflow-hidden rounded-lg bg-primary hover:bg-[#280bc4] transition-colors h-12 flex items-center justify-center text-white font-bold tracking-widest border border-transparent hover:border-white/20 hover:shadow-[0_0_20px_-5px_rgba(55,19,236,0.6)] text-sm sm:text-base"
               >
                 <span className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity -ml-6 group-hover:ml-0 duration-300">
                   &gt;
