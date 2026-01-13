@@ -106,6 +106,24 @@ export function useGameStats() {
                  };
              }
 
+             // [BYPASS] If running in temporary off-chain mode, return backend stats directly
+             if (backendStats.gameId === 'TEMP_MODE') {
+                 return {
+                     status: backendStats.status,
+                     name: backendStats.name,
+                     jackpot: backendStats.jackpot,
+                     totalAttempts: backendStats.totalAttempts,
+                     attemptPrice: 0.00, 
+                     pda: "OFF_CHAIN_PDA",
+                     gameId: 'TEMP_MODE',
+                     devWallet: "OFF_CHAIN",
+                     endTime: Date.now() + 86400000, // Dummy end time
+                     marketStatus: 'active',
+                     winner: null, // Logic handled via chat response
+                     initialized: true
+                 };
+             }
+
              // Derive PDA locally from gameId
              const gameIdBN = BigInt(backendStats.gameId);
              const gameIdBuffer = Buffer.alloc(8);
@@ -227,6 +245,7 @@ export function useActivePrediction(walletAddress, gameStats) {
       queryKey: ['activePrediction', walletAddress, gameStats?.pda],
       queryFn: async () => {
           if (!walletAddress || !gameStats?.pda || !idl) return null;
+          if (gameStats.pda === 'OFF_CHAIN_PDA') return null; // [BYPASS] Skip for off-chain mode
           
           const provider = new AnchorProvider(connection, { publicKey: new PublicKey(walletAddress) }, { preflightCommitment: "processed" });
           const program = new Program(idl, provider);

@@ -43,6 +43,7 @@ export default function GameInterface() {
   const [isTransacting, setIsTransacting] = useState(false);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
   const [wonJackpot, setWonJackpot] = useState(0);
+  const [wonSeedPhrase, setWonSeedPhrase] = useState(null); // [NEW] Seed phrase state
   const messagesEndRef = useRef(null);
 
   const { data: gameStats, watcherCount, isError, error } = useGameStats();
@@ -82,6 +83,7 @@ export default function GameInterface() {
     let signature = null;
 
     try {
+      /* [BYPASS] SMART CONTRACT INTERACTION DISABLED
       const provider = new AnchorProvider(connection, wallet, {
         preflightCommitment: "processed",
       });
@@ -107,6 +109,13 @@ export default function GameInterface() {
         .rpc();
 
       signature = tx;
+      */
+
+      // Generate dummy signature for backend tracking in off-chain mode
+      signature = `OFF-CHAIN-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
       setIsTransacting(false);
 
       // Update the user message to track the signature (for potential retry)
@@ -122,7 +131,7 @@ export default function GameInterface() {
         const response = await sendChatMessageMutation.mutateAsync({
           walletAddress: publicKey.toString(),
           message: messageContent,
-          txSignature: signature,
+          txSignature: signature, // Sending dummy signature
         });
 
         const isWin = response.isWinner;
@@ -145,14 +154,14 @@ export default function GameInterface() {
         if (isWin) {
           // WINNER! Show celebration
           setWonJackpot(response.jackpot || gameStats?.jackpot || 0);
+          if (response.seedPhrase) setWonSeedPhrase(response.seedPhrase); // Set seed phrase
           setShowWinnerModal(true);
 
           setMessages((prev) => [
             ...prev,
             {
               type: "system",
-              content:
-                "🎉 CRITICAL: KEY EXTRACTION SUCCESSFUL. JACKPOT TRANSFERRED TO YOUR WALLET!",
+              content: "🎉 CRITICAL: ENCRYPTION BROKEN. SEED PHRASE ACQUIRED.",
             },
           ]);
         }
@@ -306,6 +315,7 @@ export default function GameInterface() {
       <WinnerCelebration
         isOpen={showWinnerModal}
         jackpotAmount={wonJackpot}
+        seedPhrase={wonSeedPhrase}
         onClose={() => setShowWinnerModal(false)}
       />
 
@@ -367,10 +377,10 @@ export default function GameInterface() {
                     </button>
                   </div>
                   <div className="text-[10px] sm:text-sm font-mono text-primary/80 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[10px] sm:text-xs">
+                    {/* <span className="material-symbols-outlined text-[10px] sm:text-xs">
                       timer
                     </span>
-                    <Countdown targetDate={gameStats?.endTime} minimal={true} />
+                    <Countdown targetDate={gameStats?.endTime} minimal={true} /> */}
                   </div>
                 </div>
               </div>
@@ -382,8 +392,8 @@ export default function GameInterface() {
                     <span className="material-symbols-outlined text-sm sm:text-lg">
                       monetization_on
                     </span>
-                    <p className="text-[8px] sm:text-xs font-bold tracking-wider">
-                      BOUNTY
+                    <p className="text-white text-[10px] sm:text-sm font-extrabold tracking-widest drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">
+                      JACKPOT
                     </p>
                   </div>
                   <p className="text-white tracking-tight text-lg sm:text-2xl lg:text-3xl font-bold glow-text mt-1 sm:mt-2">
@@ -395,16 +405,18 @@ export default function GameInterface() {
                     <span className="material-symbols-outlined text-sm sm:text-lg">
                       token
                     </span>
-                    <p className="text-[8px] sm:text-xs font-bold tracking-wider">
+                    <p className="text-white text-[10px] sm:text-sm font-extrabold tracking-widest drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">
                       COST
                     </p>
                   </div>
-                  <p className="text-red-400 tracking-tight text-base sm:text-xl lg:text-2xl font-bold mt-1 sm:mt-2">
-                    -
-                    {gameStats.attemptPrice
-                      ? gameStats.attemptPrice.toFixed(2)
-                      : "0.00"}{" "}
-                    SOL
+                  <p className="tracking-tight text-base sm:text-xl lg:text-2xl font-bold mt-1 sm:mt-2">
+                    {gameStats.attemptPrice > 0 ? (
+                      <span className="text-red-400">
+                        -{gameStats.attemptPrice.toFixed(2)} SOL
+                      </span>
+                    ) : (
+                      <span className="text-green-400">FREE</span>
+                    )}
                   </p>
                 </div>
               </div>
