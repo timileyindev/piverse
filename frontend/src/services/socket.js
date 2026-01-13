@@ -10,15 +10,8 @@ export const socket = io(SOCKET_URL, {
   reconnectionDelay: 1000,
 });
 
-// Debug: Log connection status
-socket.on('connect', () => {
-  console.log('[Socket.IO] Connected:', socket.id);
-});
-
-socket.on('disconnect', (reason) => {
-  console.log('[Socket.IO] Disconnected:', reason);
-});
-
-socket.on('connect_error', (error) => {
-  console.error('[Socket.IO] Connection Error:', error.message);
-});
+// Debug: Log connection and events
+socket.on('connect', () => console.log('[Socket] Connected:', socket.id));
+socket.on('disconnect', (r) => console.log('[Socket] Disconnected:', r));
+socket.on('connect_error', (e) => console.error('[Socket] Error:', e.message));
+socket.on('new_feed_event', (d) => console.log('[Socket] new_feed_event:', d));
