@@ -220,7 +220,7 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
         system: DYNAMIC_PROMPT,
         messages: conversationMessages,
         temperature: 0.9,
-        maxTokens: 300,
+        maxTokens: 200, // Capped lower to prevent verbose Gemini responses
       });
       await processAiResponse(text);
       usedProvider = 'gemini';
