@@ -397,7 +397,7 @@ export default function GameInterface() {
                     </p>
                   </div>
                   <p className="text-white tracking-tight text-lg sm:text-2xl lg:text-3xl font-bold glow-text mt-1 sm:mt-2">
-                    {gameStats.jackpot.toLocaleString()} SOL
+                    ${gameStats.jackpot.toLocaleString()}
                   </p>
                 </div>
                 <div className="flex flex-1 flex-col justify-between rounded bg-[#1a1824] p-2 sm:p-4 border border-[#3f3b54]">

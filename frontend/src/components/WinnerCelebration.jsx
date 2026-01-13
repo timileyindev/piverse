@@ -106,7 +106,7 @@ export default function WinnerCelebration({
               Jackpot Won
             </p>
             <p className="text-center text-4xl font-bold text-white font-mono">
-              {jackpotAmount?.toLocaleString()} SOL
+              ${jackpotAmount?.toLocaleString()}
             </p>
             <p className="text-center text-green-500 text-sm mt-2 flex items-center justify-center gap-2">
               <span className="material-symbols-outlined text-sm animate-spin">
