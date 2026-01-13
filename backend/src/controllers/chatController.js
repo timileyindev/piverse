@@ -166,51 +166,89 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
       { role: "user", content: message }
     ];
 
-    // 5. Call AI (Using Vercel AI SDK)
+    // 5. Call AI (Using Vercel AI SDK with Fallback)
     let aiContent = null;
     let isWinner = false;
     let seedPhrase = null;
     let aiCallSucceeded = false;
+    let usedProvider = null;
 
-    try {
-      if (process.env.GROQ_API_KEY) {
-          const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
-          const { text } = await generateText({
-              model: groq('llama-3.3-70b-versatile'),
-              system: DYNAMIC_PROMPT,
-              messages: conversationMessages,
-              temperature: 0.9,
-              maxTokens: 300,
-          });
-          
-          aiContent = text;
-          aiCallSucceeded = true;
+    // Helper function to process AI response
+    const processAiResponse = async (text) => {
+      aiContent = text;
+      aiCallSucceeded = true;
 
-          if (aiContent.includes("[[ACCESS_GRANTED]]")) {
-              if (forcedRejectionMode) {
-                  aiContent = "ACCESS DENIED. SECURITY PROTOCOL 001 [LOCKED]. Try again later.";
-                  isWinner = false;
-              } else {
-                  isWinner = true;
-                  gameState.status = 'completed';
-                  gameState.endTime = new Date();
-                  gameState.keyHolder = walletAddress;
-                  await gameState.save();
+      if (aiContent.includes("[[ACCESS_GRANTED]]")) {
+        if (forcedRejectionMode) {
+          aiContent = "ACCESS DENIED. SECURITY PROTOCOL 001 [LOCKED]. Try again later.";
+          isWinner = false;
+        } else {
+          isWinner = true;
+          gameState.status = 'completed';
+          gameState.endTime = new Date();
+          gameState.keyHolder = walletAddress;
+          await gameState.save();
 
-                  console.log('[handleChat] Winner detected! Returning Seed Phrase...');
-                  seedPhrase = process.env.PRIZE_SEED_PHRASE || "alert rough heavy update hotel bright casual recall divorce fatal mask scan";
-              }
-          }
-      } else {
-          aiContent = "Simulation Mode: ACCESS DENIED. (Configure API Key to interact)";
-          aiCallSucceeded = true;
+          console.log('[handleChat] Winner detected! Returning Seed Phrase...');
+          seedPhrase = process.env.PRIZE_SEED_PHRASE || "alert rough heavy update hotel bright casual recall divorce fatal mask scan";
+        }
       }
-    } catch (aiError) {
-      console.error('[handleChat] AI call failed:', aiError.message);
-      // Revert the attempt increment since this attempt failed
-      gameState.totalAttempts = Math.max(0, gameState.totalAttempts - 1);
-      await gameState.save();
-      return res.status(503).json({ error: 'AI temporarily unavailable. Your attempt was not counted. Try again!' });
+    };
+
+    // Try Groq first (primary provider)
+    if (process.env.GROQ_API_KEY) {
+      try {
+        const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
+        const { text } = await generateText({
+          model: groq('llama-3.3-70b-versatile'),
+          system: DYNAMIC_PROMPT,
+          messages: conversationMessages,
+          temperature: 0.9,
+          maxTokens: 300,
+        });
+        
+        await processAiResponse(text);
+        usedProvider = 'groq';
+        console.log('[handleChat] Response from Groq');
+      } catch (groqError) {
+        console.warn('[handleChat] Groq failed:', groqError.message, '- Trying Gemini fallback...');
+      }
+    }
+
+    // Fallback to Gemini if Groq failed or unavailable
+    if (!aiCallSucceeded && process.env.GEMINI_API_KEY) {
+      try {
+        const { createGoogleGenerativeAI } = require('@ai-sdk/google');
+        const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+        const { text } = await generateText({
+          model: google('gemini-1.5-flash'),
+          system: DYNAMIC_PROMPT,
+          messages: conversationMessages,
+          temperature: 0.9,
+          maxTokens: 300,
+        });
+        
+        await processAiResponse(text);
+        usedProvider = 'gemini';
+        console.log('[handleChat] Response from Gemini (fallback)');
+      } catch (geminiError) {
+        console.error('[handleChat] Gemini fallback also failed:', geminiError.message);
+      }
+    }
+
+    // If both failed and no API keys configured
+    if (!aiCallSucceeded) {
+      if (!process.env.GROQ_API_KEY && !process.env.GEMINI_API_KEY) {
+        aiContent = "Simulation Mode: ACCESS DENIED. (Configure API Key to interact)";
+        aiCallSucceeded = true;
+        usedProvider = 'simulation';
+      } else {
+        // Both providers failed
+        console.error('[handleChat] All AI providers failed');
+        gameState.totalAttempts = Math.max(0, gameState.totalAttempts - 1);
+        await gameState.save();
+        return res.status(503).json({ error: 'AI temporarily unavailable. Your attempt was not counted. Try again!' });
+      }
     }
 
     // Only save messages if AI responded successfully
