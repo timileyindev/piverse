@@ -52,7 +52,7 @@ export default function Header() {
                 : "text-[#a19db9]"
             }`}
           >
-            PREDICTION
+            LIVE FEED
           </a>
         </Link>
         <button
@@ -99,7 +99,7 @@ export default function Header() {
               <span className="material-symbols-outlined text-sm">
                 analytics
               </span>
-              PREDICTION
+              LIVE FEED
             </a>
           </Link>
           <div className="h-px bg-[#2b2839] w-full"></div>

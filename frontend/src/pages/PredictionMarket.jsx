@@ -328,12 +328,14 @@ export default function PredictionMarket() {
                   {gameStats?.status}
                 </span>
               </span>
+              {/* Countdown hidden for off-chain mode
               <span className="hidden sm:flex items-center gap-1 ml-2 pl-2 border-l border-[#2b2839]">
                 <span className="material-symbols-outlined text-[16px]">
                   timer
                 </span>
                 <Countdown targetDate={gameStats?.endTime} minimal={true} />
               </span>
+              */}
             </div>
             <div className="flex gap-4 text-xs sm:text-sm">
               <span className="hover:text-white cursor-pointer transition-colors">

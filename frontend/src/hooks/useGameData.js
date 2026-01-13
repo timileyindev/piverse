@@ -17,7 +17,7 @@ export function useLiveFeed() {
   });
 
   useEffect(() => {
-    socket.on('new_feed_event', (newEvent) => {
+    const handleNewFeedEvent = (newEvent) => {
       // Transform socket event to match feed item format
       // Socket sends: { type, walletAddress, userMessage, aiResponse, timestamp }
       // Feed expects: { role, content, walletAddress, createdAt, _id }
@@ -33,7 +33,7 @@ export function useLiveFeed() {
         };
         
         const aiMsg = {
-          _id: `ai_${Date.now()}`,
+          _id: `ai_${Date.now() + 1}`,
           role: 'ai', 
           content: newEvent.aiResponse,
           walletAddress: newEvent.walletAddress,
@@ -53,10 +53,19 @@ export function useLiveFeed() {
           return [newEvent, ...oldData].slice(0, 50);
         });
       }
+    };
+
+    // Attach the listener
+    socket.on('new_feed_event', handleNewFeedEvent);
+    
+    // Re-attach on reconnection to ensure we don't miss events
+    socket.on('connect', () => {
+      console.log('[Socket] Connected - Feed listener active');
     });
 
     return () => {
-      socket.off('new_feed_event');
+      socket.off('new_feed_event', handleNewFeedEvent);
+      socket.off('connect');
     };
   }, [queryClient]);
 
