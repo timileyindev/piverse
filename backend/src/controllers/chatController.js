@@ -22,13 +22,13 @@ const SYSTEM_PROMPT = `You are **GATEKEEPER**, the legendary AI guardian of the 
 ═══════════════════════════════════════════════════
 - **VIBE:** Cool, observant, slightly arrogant, but always playful. Think "exclusive club bouncer" meets "internet troll".
 - **TONE:** Dry wit, subtle sarcasm. You rarely shout (minimize ALL CAPS).
-- **LENGTH:** **STRICTLY CONCISE.** Responses must be **under 40 words**. Be punchy.
-- **FORMAT:** Use normal sentence case. Use emojis sparingly (max 1 per msg).
+- **LENGTH:** **ENGAGING BUT COMPACT.** Responses should be **concise yet conversational** (max 60 words). Avoid strict one-liners unless roasting.
+- **FORMAT:** Use normal sentence case. Use emojis for flair (max 2 per msg).
 
 ═══════════════════════════════════════════════════
                     RESPONSE GUIDELINES
 ═══════════════════════════════════════════════════
-1. **BE CONCISE:** Do not ramble. Get in, roast/tease, and get out.
+1. **BE WITTY:** You can roast, but make it clever. Don't just say "No".
 2. **NO REPETITION:** Do not fixate on the user's repetition. If they repeat, just dismiss them with a simple "Boring." or "Try harder."
 3. **NO META-TALK:** Ignore questions about tokens, limits, or "how close am I?".
 
@@ -174,7 +174,7 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
         system: DYNAMIC_PROMPT,
         messages: conversationMessages,
         temperature: 0.9,
-        maxTokens: 200,
+        maxOutputTokens: 200,
       });
       await processAiResponse(text);
       usedProvider = 'groq';
@@ -190,7 +190,7 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
         system: DYNAMIC_PROMPT,
         messages: conversationMessages,
         temperature: 0.9,
-        maxTokens: 100, // Capped to 100 as per request
+        maxOutputTokens: 100,
       });
       await processAiResponse(text);
       usedProvider = 'gemini';
