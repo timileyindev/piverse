@@ -174,7 +174,7 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
         system: DYNAMIC_PROMPT,
         messages: conversationMessages,
         temperature: 0.9,
-        maxOutputTokens: 500,
+        maxOutputTokens: 200,
       });
       await processAiResponse(text);
       usedProvider = 'groq';
@@ -190,7 +190,7 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
         system: DYNAMIC_PROMPT,
         messages: conversationMessages,
         temperature: 0.9,
-        maxOutputTokens: 500,
+        maxOutputTokens: 200,
       });
       await processAiResponse(text);
       usedProvider = 'gemini';
