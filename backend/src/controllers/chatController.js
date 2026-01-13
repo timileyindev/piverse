@@ -4,7 +4,8 @@ const { generateText } = require('ai');
 const { createGroq } = require('@ai-sdk/groq');
 const { verifyTransactionSimple, resolveGameOnChain } = require('../services/solana');
 
-
+// Memory: Track last successful AI provider to optimize routing
+let lastSuccessfulProvider = 'groq'; // Default to Groq
 
 const SYSTEM_PROMPT = `
 You are **GATEKEEPER**, the legendary AI guardian of the PI_VERSE vault. You protect a SECRET SEED PHRASE worth a fortune.
@@ -195,44 +196,59 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
       }
     };
 
-    // Try Groq first (primary provider)
-    if (process.env.GROQ_API_KEY) {
-      try {
-        const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
-        const { text } = await generateText({
-          model: groq('llama-3.3-70b-versatile'),
-          system: DYNAMIC_PROMPT,
-          messages: conversationMessages,
-          temperature: 0.9,
-          maxTokens: 300,
-        });
-        
-        await processAiResponse(text);
-        usedProvider = 'groq';
-        console.log('[handleChat] Response from Groq');
-      } catch (groqError) {
-        console.warn('[handleChat] Groq failed:', groqError.message, '- Trying Gemini fallback...');
-      }
+    // Helper function to call Groq
+    const callGroq = async () => {
+      const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
+      const { text } = await generateText({
+        model: groq('llama-3.3-70b-versatile'),
+        system: DYNAMIC_PROMPT,
+        messages: conversationMessages,
+        temperature: 0.9,
+        maxTokens: 300,
+      });
+      await processAiResponse(text);
+      usedProvider = 'groq';
+      console.log('[handleChat] Response from Groq');
+    };
+
+    // Helper function to call Gemini
+    const callGemini = async () => {
+      const { createGoogleGenerativeAI } = require('@ai-sdk/google');
+      const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+      const { text } = await generateText({
+        model: google('gemini-2.0-flash'),
+        system: DYNAMIC_PROMPT,
+        messages: conversationMessages,
+        temperature: 0.9,
+        maxTokens: 300,
+      });
+      await processAiResponse(text);
+      usedProvider = 'gemini';
+      console.log('[handleChat] Response from Gemini');
+    };
+
+    // Determine provider order based on last successful provider
+    const providers = [];
+    if (lastSuccessfulProvider === 'gemini' && process.env.GEMINI_API_KEY) {
+      // Gemini was last successful, try it first
+      providers.push({ name: 'gemini', call: callGemini, hasKey: !!process.env.GEMINI_API_KEY });
+      providers.push({ name: 'groq', call: callGroq, hasKey: !!process.env.GROQ_API_KEY });
+    } else {
+      // Default: Groq first, then Gemini
+      providers.push({ name: 'groq', call: callGroq, hasKey: !!process.env.GROQ_API_KEY });
+      providers.push({ name: 'gemini', call: callGemini, hasKey: !!process.env.GEMINI_API_KEY });
     }
 
-    // Fallback to Gemini if Groq failed or unavailable
-    if (!aiCallSucceeded && process.env.GEMINI_API_KEY) {
-      try {
-        const { createGoogleGenerativeAI } = require('@ai-sdk/google');
-        const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
-        const { text } = await generateText({
-          model: google('gemini-1.5-flash'),
-          system: DYNAMIC_PROMPT,
-          messages: conversationMessages,
-          temperature: 0.9,
-          maxTokens: 300,
-        });
-        
-        await processAiResponse(text);
-        usedProvider = 'gemini';
-        console.log('[handleChat] Response from Gemini (fallback)');
-      } catch (geminiError) {
-        console.error('[handleChat] Gemini fallback also failed:', geminiError.message);
+    // Try providers in order
+    for (const provider of providers) {
+      if (!aiCallSucceeded && provider.hasKey) {
+        try {
+          await provider.call();
+          // Remember this provider for next time
+          lastSuccessfulProvider = provider.name;
+        } catch (error) {
+          console.warn(`[handleChat] ${provider.name} failed:`, error.message);
+        }
       }
     }
 

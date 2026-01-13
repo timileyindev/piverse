@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
@@ -471,19 +472,28 @@ export default function GameInterface() {
                               : "border-primary text-gray-200"
                           } text-xs sm:text-sm leading-relaxed font-mono rounded-r-lg break-words`}
                         >
-                          <p>
-                            {msg.isError && (
-                              <span className="text-red-500 font-bold mr-1">
-                                [DENIED]
-                              </span>
-                            )}
-                            {msg.isWinner && (
-                              <span className="text-green-500 font-bold mr-1">
-                                [GRANTED]
-                              </span>
-                            )}
-                            {msg.content}
-                          </p>
+                          <div className="prose prose-invert prose-p:my-1 prose-headings:my-2 max-w-none text-xs sm:text-sm">
+                            <ReactMarkdown
+                              components={{
+                                p: ({ node, ...props }) => (
+                                  <p
+                                    className="mb-1 last:mb-0 inline"
+                                    {...props}
+                                  />
+                                ),
+                                strong: ({ node, ...props }) => (
+                                  <span
+                                    className="font-bold text-primary-300"
+                                    {...props}
+                                  />
+                                ),
+                              }}
+                            >
+                              {(msg.isError ? "**[DENIED]** " : "") +
+                                (msg.isWinner ? "**[GRANTED]** " : "") +
+                                msg.content}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -118,13 +118,26 @@ export default function AccessPage({ onEnter }) {
               <span className="font-bold tracking-wide">@piversedotfun</span>
             </a>
 
-            <div className="flex items-center gap-2 bg-[#1d1c27]/50 text-[#a19db9] px-3 py-2 rounded border border-[#3f3b54]/50 cursor-wait select-none">
-              <span className="material-symbols-outlined text-sm">token</span>
-              <span>
+            <div
+              className="flex items-center gap-2 bg-[#1d1c27]/80 text-[#a19db9] px-3 py-2 rounded border border-primary/30 cursor-pointer hover:bg-[#2b2839] transition-colors group relative"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  "HAtqNfWXNpmF1USk4oxfEJzFMe9UThemaPzTiuHMpump"
+                );
+                // Optional: Show a toast here
+              }}
+            >
+              <span className="material-symbols-outlined text-sm text-primary">
+                token
+              </span>
+              <span className="font-mono text-xs sm:text-sm">
                 CA:{" "}
-                <span className="text-white/40 tracking-widest font-bold">
-                  COMING SOON
+                <span className="text-white font-bold ml-1 tracking-wide group-hover:text-primary transition-colors">
+                  HAtqNfWX...pump
                 </span>
+              </span>
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                Click to copy
               </span>
             </div>
           </div>

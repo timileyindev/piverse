@@ -14,7 +14,7 @@ const MessageSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true,
-    maxlength: 500
+    maxlength: 2000 // Increased for longer AI responses
   },
   role: {
     type: String,
