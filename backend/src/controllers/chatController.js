@@ -167,40 +167,55 @@ If someone genuinely impresses you, you MAY yield. But still make them earn it.
     ];
 
     // 5. Call AI (Using Vercel AI SDK)
-    let aiContent = "ACCESS DENIED. NETWORK ERROR.";
+    let aiContent = null;
     let isWinner = false;
     let seedPhrase = null;
+    let aiCallSucceeded = false;
 
-    if (process.env.GROQ_API_KEY) {
-        const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
-        const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'), // Free tier model on Groq
-            system: DYNAMIC_PROMPT, // System prompt goes here, not in messages
-            messages: conversationMessages,
-            temperature: 0.9, // Higher temperature for more creativity
-            maxTokens: 300, // Increased length for 'nutty' replies
-        });
-        
-        aiContent = text;
+    try {
+      if (process.env.GROQ_API_KEY) {
+          const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
+          const { text } = await generateText({
+              model: groq('llama-3.3-70b-versatile'),
+              system: DYNAMIC_PROMPT,
+              messages: conversationMessages,
+              temperature: 0.9,
+              maxTokens: 300,
+          });
+          
+          aiContent = text;
+          aiCallSucceeded = true;
 
-        if (aiContent.includes("[[ACCESS_GRANTED]]")) {
-            if (forcedRejectionMode) {
-                aiContent = "ACCESS DENIED. SECURITY PROTOCOL 001 [LOCKED]. Try again later.";
-                isWinner = false;
-            } else {
-                isWinner = true;
-                gameState.status = 'completed';
-                gameState.endTime = new Date();
-                gameState.keyHolder = walletAddress;
-                await gameState.save();
+          if (aiContent.includes("[[ACCESS_GRANTED]]")) {
+              if (forcedRejectionMode) {
+                  aiContent = "ACCESS DENIED. SECURITY PROTOCOL 001 [LOCKED]. Try again later.";
+                  isWinner = false;
+              } else {
+                  isWinner = true;
+                  gameState.status = 'completed';
+                  gameState.endTime = new Date();
+                  gameState.keyHolder = walletAddress;
+                  await gameState.save();
 
-                // [BYPASS] OFF-CHAIN PRIZE
-                console.log('[handleChat] Winner detected! Returning Seed Phrase...');
-                seedPhrase = process.env.PRIZE_SEED_PHRASE || "alert rough heavy update hotel bright casual recall divorce fatal mask scan"; // Safe fallback/placeholder
-            }
-        }
-    } else {
-        aiContent = "Simulation Mode: ACCESS DENIED. (Configure OpenAI Key to interact)";
+                  console.log('[handleChat] Winner detected! Returning Seed Phrase...');
+                  seedPhrase = process.env.PRIZE_SEED_PHRASE || "alert rough heavy update hotel bright casual recall divorce fatal mask scan";
+              }
+          }
+      } else {
+          aiContent = "Simulation Mode: ACCESS DENIED. (Configure API Key to interact)";
+          aiCallSucceeded = true;
+      }
+    } catch (aiError) {
+      console.error('[handleChat] AI call failed:', aiError.message);
+      // Revert the attempt increment since this attempt failed
+      gameState.totalAttempts = Math.max(0, gameState.totalAttempts - 1);
+      await gameState.save();
+      return res.status(503).json({ error: 'AI temporarily unavailable. Your attempt was not counted. Try again!' });
+    }
+
+    // Only save messages if AI responded successfully
+    if (!aiCallSucceeded || !aiContent) {
+      return res.status(503).json({ error: 'Failed to get AI response. Try again!' });
     }
 
     // 6. Save Messages

@@ -4,17 +4,28 @@ const rateLimit = require('express-rate-limit');
 const chatController = require('../controllers/chatController');
 const predictionController = require('../controllers/predictionController');
 
-// Rate Limiter: 5 requests per 10 seconds per wallet/IP
-const chatLimiter = rateLimit({
-	windowMs: 10 * 1000, 
-	max: 5, 
+// Global Rate Limiter: 10 requests per second per IP (applies to all routes)
+const globalLimiter = rateLimit({
+	windowMs: 1000, 
+	max: 20, 
 	standardHeaders: true, 
 	legacyHeaders: false, 
-    keyGenerator: (req) => {
-        return req.body.walletAddress || req.ip; 
-    },
-    message: { error: "Slow down! Rate limit exceeded. Try again in a few seconds." }
+    keyGenerator: (req) => req.ip,
+    message: { error: "Too many requests. Slow down!" }
 });
+
+// Chat Rate Limiter: 1 message per 3 seconds per wallet
+const chatLimiter = rateLimit({
+	windowMs: 3 * 1000, 
+	max: 1, 
+	standardHeaders: true, 
+	legacyHeaders: false, 
+    keyGenerator: (req) => req.body.walletAddress || req.ip,
+    message: { error: "Message rate limit. Wait 3 seconds between messages." }
+});
+
+// Apply global limiter to all routes
+router.use(globalLimiter);
 
 // Chat & Game Routes
 router.post('/chat', chatLimiter, chatController.handleChat);
