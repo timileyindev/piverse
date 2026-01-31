@@ -9,7 +9,7 @@ const GameStateSchema = new mongoose.Schema({
   },
   name: {
     type: String,
-    default: "PI VERSE"
+    default: "CLAW VERSE"
   },
   gameId: {
     type: String,

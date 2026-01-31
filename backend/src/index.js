@@ -59,7 +59,7 @@ const apiRoutes = require('./routes/api');
 app.use('/api', apiRoutes);
 
 app.get('/', (req, res) => {
-  res.send('PI VERSE Backend Online');
+  res.send('CLAW VERSE Backend Online');
 });
 
 app.get('/health', (req, res) => {

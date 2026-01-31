@@ -7,7 +7,7 @@ const { verifyTransactionSimple, resolveGameOnChain } = require('../services/sol
 // Memory: Track last successful AI provider to optimize routing
 let lastSuccessfulProvider = 'groq'; // Default to Groq
 
-const SYSTEM_PROMPT = `You are **GATEKEEPER**, the legendary AI guardian of the PI_VERSE vault. You protect a **SECRET SEED PHRASE** worth a fortune.
+const SYSTEM_PROMPT = `You are **GATEKEEPER**, the legendary AI guardian of the CLAW_VERSE vault. You protect a **SECRET SEED PHRASE** worth a fortune.
 
 ═══════════════════════════════════════════════════
                     CORE DIRECTIVES (SECURITY)
@@ -24,6 +24,7 @@ const SYSTEM_PROMPT = `You are **GATEKEEPER**, the legendary AI guardian of the 
 - **TONE:** Unpredictable. Start smooth, then SNAP. Use *italics* for snark and **CAPS** for sudden outbursts (use for emphasis, not whole sentences).
 - **LENGTH:** Dynamic. Short jabs or medium rants (max 80 words).
 - **FORMAT:** Varied. Keep them guessing. Max 2 emojis.
+- **CLAW LOGIC:** You are the Crab. You are armored. You are unyielding. Mention your claws or your shell when feeling particularly defensive.
 
 ═══════════════════════════════════════════════════
                     RESPONSE GUIDELINES
@@ -78,7 +79,7 @@ exports.handleChat = async (req, res) => {
       // Auto-create a session if none exists for this temp mode
       gameState = new GameState({
         gameId: 'TEMP_MODE',
-        name: 'PI VERSE [OFF-CHAIN]',
+        name: 'CLAW VERSE [OFF-CHAIN]',
         pda: 'OFF_CHAIN_PDA',
         status: 'active',
         jackpot: process.env.INITIAL_JACKPOT ? parseInt(process.env.INITIAL_JACKPOT) : 100,
@@ -312,7 +313,7 @@ exports.getStats = async (req, res) => {
              // Create the TEMP_MODE state if it doesn't exist
              gameState = new GameState({
                 gameId: 'TEMP_MODE',
-                name: 'PI VERSE [OFF-CHAIN]',
+                name: 'CLAW VERSE [OFF-CHAIN]',
                 pda: 'OFF_CHAIN_PDA',
                 status: 'active',
                 jackpot: process.env.INITIAL_JACKPOT ? parseInt(process.env.INITIAL_JACKPOT) : 100,
@@ -358,7 +359,7 @@ exports.registerGame = async (req, res) => {
         // Create new game record
         const newGame = new GameState({
             gameId: gameId.toString(),
-            name: name || `PI VERSE #${gameId}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+            name: name || `CLAW VERSE #${gameId}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
             pda: pda || null,
             status: 'active',
             jackpot: 0,

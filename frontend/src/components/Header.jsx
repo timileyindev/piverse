@@ -15,47 +15,47 @@ export default function Header() {
   const isActive = (path) => location === path;
 
   return (
-    <header className="flex-none flex items-center justify-between whitespace-nowrap border-b border-dashed border-[#2b2839] bg-[#121118]/80 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 z-50 relative">
+    <header className="flex-none flex items-center justify-between whitespace-nowrap border-b border-white/10 bg-brand-dark px-4 sm:px-6 py-3 sm:py-4 z-50 relative font-orbitron">
       <div className="flex items-center gap-3 sm:gap-4 text-white">
         <div className="size-8 sm:size-10 flex items-center justify-center">
           <img
-            src="/favicon.svg"
-            alt="Pi Verse Logo"
-            className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]"
+            src="/assets/hero.jpg"
+            alt="Claw Verse Logo"
+            className="w-full h-full object-contain rounded-full shadow-neon-red"
           />
         </div>
-        <h2 className="text-white text-lg sm:text-xl font-bold leading-tight tracking-widest uppercase glow-text border-b-2 border-transparent hover:border-primary transition-all">
-          PI VERSE
+        <h2 className="text-brand-red text-lg sm:text-xl font-black leading-tight tracking-widest uppercase shadow-neon-red">
+          CLAW VERSE
         </h2>
       </div>
 
       {/* Desktop Navigation */}
       <div className="hidden sm:flex items-center gap-6">
-        <div className="flex items-center gap-2 text-[#a19db9] text-xs font-mono">
+        <div className="flex items-center gap-2 text-brand-blue text-xs font-mono">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
           <span>NET: SECURE</span>
         </div>
         <Link
           href="/game"
           className={`hover:text-white transition-colors text-sm font-medium tracking-wider ${
-            isActive("/game") ? "text-primary font-bold" : "text-[#a19db9]"
+            isActive("/game") ? "text-brand-red font-bold" : "text-white/60"
           }`}
         >
-          TERMINAL
+          [ TERMINAL ]
         </Link>
         <Link
           href="/prediction"
           className={`hover:text-white transition-colors text-sm font-medium tracking-wider ${
             isActive("/prediction")
-              ? "text-primary font-bold"
-              : "text-[#a19db9]"
+              ? "text-brand-red font-bold"
+              : "text-white/60"
           }`}
         >
-          LIVE FEED
+          [ FEED ]
         </Link>
         <button
           onClick={handleDisconnect}
-          className="text-red-500 hover:text-red-400 transition-colors text-xs font-bold tracking-wider flex items-center gap-1"
+          className="text-brand-red hover:text-red-400 transition-colors text-xs font-bold tracking-wider flex items-center gap-1"
         >
           <span className="material-symbols-outlined text-sm">logout</span>
           TERMINATE
