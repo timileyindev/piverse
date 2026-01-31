@@ -1,7 +1,7 @@
 import io from 'socket.io-client';
 
-// Change URL to production one when deploying
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+// Use relative URL when not specified - Vite proxy will handle it
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
 
 export const socket = io(SOCKET_URL, {
   autoConnect: true,

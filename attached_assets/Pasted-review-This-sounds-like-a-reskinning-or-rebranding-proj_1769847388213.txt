@@ -1,0 +1,37 @@
+review This sounds like a "reskinning" or "rebranding" project. To get a coding agent (like an AI developer or a freelancer) to accurately mimic the brand identity and content of a target site, you need to provide a high-context "Style & Content Transfer" brief.
+Since you haven't shared the link yet, I have drafted the Guidelines and the Technical Prompt below. You can fill in the bracketed info once you have the link.
+Part 1: The Branding & Content Guidelines
+These are the "rules" the agent must follow to ensure the new site feels like the target.
+ * Visual DNA Extraction: Analyze the target site’s CSS variables. This includes the exact Hex codes for primary/secondary colors, font families (headings vs. body), and border-radius styles (sharp vs. rounded).
+ * Voice & Tone Alignment: If the target site is "Corporate/Professional," the content must be formal. If it is "Modern/Startup," the content should be punchy and use active verbs.
+ * Asset Replacement: All original images, icons, and logos must be replaced. Do not just delete them; replace them with high-quality alternatives that match the composition and subject matter of the target site.
+ * Information Architecture: The navigation flow (Menu items, Call-to-Action buttons) should mirror the target site's user journey.
+Part 2: The "Coding Agent" Master Prompt
+Copy and paste this to your AI agent or developer once you have your source and target ready.
+> System Role: You are a Senior Frontend Engineer and Brand Specialist.
+> Task: Rebrand the current repository to mimic the branding and content of the [TARGET SITE LINK HERE].
+> Requirements:
+>  * Visual Audit: Scrape/Analyze the target link for its color palette, typography (Google Fonts or similar), and UI patterns. Update the global CSS/Tailwind config to match.
+>  * Content Swap: Rewrite all landing page copy, headings, and descriptions. The goal is not to copy-paste the text, but to mimic the "Brand Voice" and value propositions.
+>  * Image Logic: Identify all image assets. Replace them with new, high-resolution images from Unsplash/Pexels that fit the target site's aesthetic.
+>  * Component Alignment: Adjust button styles, card layouts, and spacing (padding/margins) to reflect the target site’s density and layout.
+> Output:
+>  * Execute the changes across the codebase.
+>  * Ensure the site is fully responsive.
+>  * Create a descriptive Pull Request (PR) detailing the style changes and content updates made.
+> 
+Part 3: The Pull Request (PR) Template
+When the agent is done, they should submit the work with this format:
+ * Title: feat: Rebrand and Content Alignment - [Target Brand Name]
+ * Summary: Comprehensive update to UI/UX and copy to align with the new brand direction.
+ * Changes:
+   * Updated tailwind.config.js / theme.css with new brand colors and fonts.
+   * Replaced all placeholder images in /public/assets.
+   * Updated index.html / Home.jsx with localized brand copy.
+ * Test: "Verified mobile responsiveness and color contrast accessibility."
+When you're ready, drop the link to the site you want to mimic! I can then analyze it specifically and give you the exact Hex codes and font names to plug into the prompt.
+
+![Image](https://github.com/user-attachments/assets/5a306357-f72d-42ae-9cf8-9194b2fb215d)
+![Image](https://github.com/user-attachments/assets/569728ee-9fbe-45de-83da-6453d5223d0d)
+![Image](https://github.com/user-attachments/assets/cab040e8-9955-4c01-ac0f-63579cb0183e)
+![Image](https://github.com/user-attachments/assets/c6ce272e-97cc-440b-8ad5-174ec0110743)

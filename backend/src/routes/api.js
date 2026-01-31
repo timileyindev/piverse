@@ -6,22 +6,23 @@ const predictionController = require('../controllers/predictionController');
 
 // Global Rate Limiter: 10 requests per second per IP (applies to all routes)
 const globalLimiter = rateLimit({
-	windowMs: 1000, 
-	max: 20, 
-	standardHeaders: true, 
-	legacyHeaders: false, 
-    keyGenerator: (req) => req.ip,
-    message: { error: "Too many requests. Slow down!" }
+        windowMs: 1000, 
+        max: 20, 
+        standardHeaders: true, 
+        legacyHeaders: false, 
+    message: { error: "Too many requests. Slow down!" },
+    validate: { xForwardedForHeader: false }
 });
 
 // Chat Rate Limiter: 1 message per 3 seconds per wallet
 const chatLimiter = rateLimit({
-	windowMs: 3 * 1000, 
-	max: 1, 
-	standardHeaders: true, 
-	legacyHeaders: false, 
-    keyGenerator: (req) => req.body.walletAddress || req.ip,
-    message: { error: "Message rate limit. Wait 3 seconds between messages." }
+        windowMs: 3 * 1000, 
+        max: 1, 
+        standardHeaders: true, 
+        legacyHeaders: false, 
+    keyGenerator: (req) => req.body.walletAddress || 'anonymous',
+    message: { error: "Message rate limit. Wait 3 seconds between messages." },
+    validate: { xForwardedForHeader: false }
 });
 
 // Apply global limiter to all routes

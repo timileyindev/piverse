@@ -22,12 +22,16 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Database Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/piverse';
+// Database Connection (optional - will work with in-memory fallback if no MongoDB)
+const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI)
-  .then(() => logger.info('Database', 'MongoDB Connected'))
-  .catch(err => logger.error('Database', 'MongoDB Connection Error', { error: err.message }));
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => logger.info('Database', 'MongoDB Connected'))
+    .catch(err => logger.warn('Database', 'MongoDB Connection Error - using in-memory mode', { error: err.message }));
+} else {
+  logger.warn('Database', 'No MONGODB_URI set - running in demo mode without persistence');
+}
 
 // Socket.io for Real-time Feeds
 let watchers = 0;
@@ -69,7 +73,7 @@ app.get('/health', (req, res) => {
 // Error Handler (must be last middleware)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   logger.info('Server', `Server running on port ${PORT}`, { 
     env: process.env.NODE_ENV || 'development',
