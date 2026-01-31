@@ -184,28 +184,17 @@ export default function AccessPage({ onEnter }) {
             </div>
           </div>
         </div>
-              {connected && (
-                <button
-                  onClick={() => disconnect()}
-                  className="w-full sm:w-auto rounded-lg border border-[#3f3b54] hover:border-white/40 hover:bg-white/5 transition-all h-12 flex items-center justify-center text-[#a19db9] hover:text-white font-medium tracking-wide text-sm sm:text-base px-6"
-                >
-                  [ TERMINATE SESSION ]
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Footer / System Status */}
-        <div className="bg-[#0f0e14] border-t border-[#2b2839] px-4 sm:px-6 py-3 flex justify-between items-center text-[10px] sm:text-xs text-[#585472] font-mono">
+        <div className="bg-brand-dark border-t border-white/10 px-4 sm:px-6 py-3 flex justify-between items-center text-[10px] sm:text-xs text-white/40 font-mono">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[12px] sm:text-[14px]">
+            <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-brand-red">
               memory
             </span>
-            <span>MEM: 64TB FREE</span>
+            <span>CLAW_SYNC: ACTIVE</span>
           </div>
-          <div className="uppercase tracking-wider text-primary animate-pulse">
-            STATUS: {connected ? "READY" : "AWAITING INPUT"}
+          <div className="uppercase tracking-wider text-brand-blue animate-pulse">
+            STATUS: {connected ? "READY" : "AWAITING NEURAL LINK"}
           </div>
         </div>
       </div>
