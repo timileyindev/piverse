@@ -1,4 +1,4 @@
-# PI VERSE
+# CLAW VERSE
 
 A persuasion-based AI game where words are bets, built on Solana.
 

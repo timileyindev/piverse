@@ -1,4 +1,4 @@
-PI VERSE
+CLAW VERSE
 
 A persuasion-based AI game where words are bets
 
@@ -6,7 +6,7 @@ A persuasion-based AI game where words are bets
 
 CORE CONCEPT
 
-PI Verse is a psychological AI game built around a single interaction.
+Claw Verse is a psychological AI game built around a single interaction.
 
 One screen.
 One AI.
