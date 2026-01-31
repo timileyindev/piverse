@@ -323,9 +323,9 @@ export default function GameInterface() {
       {/* Main Content Area - Flex-1 to fill remaining space */}
       <main className="flex-1 flex justify-center p-2 sm:p-6 lg:p-10 overflow-hidden relative w-full h-full">
         {/* Terminal Window Container */}
-        <div className="flex flex-col w-full max-w-5xl h-full bg-[#121118] border border-primary/30 rounded-lg shadow-[0_0_30px_rgba(55,19,236,0.15)] overflow-hidden relative">
+        <div className="flex flex-col w-full max-w-5xl h-full bg-brand-dark border border-brand-red/30 rounded-lg shadow-neon-red overflow-hidden relative">
           {/* Terminal Header Bar - Fixed */}
-          <div className="flex-none bg-[#1a1824] px-3 sm:px-4 py-2 border-b border-primary/20 flex items-center justify-between select-none">
+          <div className="flex-none bg-brand-dark px-3 sm:px-4 py-2 border-b border-white/10 flex items-center justify-between select-none">
             <div className="flex items-center gap-2">
               <div className="flex gap-1.5">
                 <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500/50"></div>
@@ -333,10 +333,10 @@ export default function GameInterface() {
                 <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500/50"></div>
               </div>
               <span className="ml-2 sm:ml-3 text-[10px] sm:text-xs text-[#a19db9] font-mono truncate max-w-[100px] sm:max-w-none">
-                root@pi-verse:~
+                root@claw-verse:~
               </span>
             </div>
-            <div className="text-[9px] sm:text-[10px] font-mono text-primary animate-pulse">
+            <div className="text-[9px] sm:text-[10px] font-mono text-brand-red animate-pulse">
               ENCRYPTED // 2048-BIT
             </div>
           </div>
@@ -344,10 +344,10 @@ export default function GameInterface() {
           {/* Terminal Body - Flex col to separate stats, chat, input */}
           <div className="flex flex-col h-full overflow-hidden">
             {/* Stats / Dashboard Area */}
-            <div className="flex-none grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-6 border-b border-[#2b2839]">
+            <div className="flex-none grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 p-3 sm:p-6 border-b border-white/10">
               {/* Left: Status */}
               <div className="flex flex-col justify-center gap-0.5 sm:gap-1">
-                <div className="flex items-center gap-1 sm:gap-2 text-primary mb-1">
+                <div className="flex items-center gap-1 sm:gap-2 text-brand-red mb-1">
                   <span className="material-symbols-outlined text-xs sm:text-sm animate-pulse">
                     sensors
                   </span>
@@ -358,7 +358,7 @@ export default function GameInterface() {
                 <p className="text-white text-lg sm:text-2xl lg:text-3xl font-bold leading-none tracking-tight">
                   {gameStats?.name}
                   <br />
-                  <span className="text-primary/70 text-sm sm:text-xl">
+                  <span className="text-brand-red/70 text-sm sm:text-xl">
                     // {gameStats.status === "active" ? "ACTIVE" : "OFFLINE"}
                   </span>
                 </p>
@@ -377,7 +377,7 @@ export default function GameInterface() {
                       </span>
                     </button>
                   </div>
-                  <div className="text-[10px] sm:text-sm font-mono text-primary/80 flex items-center gap-2">
+                  <div className="text-[10px] sm:text-sm font-mono text-brand-red/80 flex items-center gap-2">
                     {/* <span className="material-symbols-outlined text-[10px] sm:text-xs">
                       timer
                     </span>
@@ -388,7 +388,7 @@ export default function GameInterface() {
 
               {/* Right: Bounty Stats */}
               <div className="flex gap-2 sm:gap-4">
-                <div className="flex flex-1 flex-col justify-between rounded bg-primary/5 p-2 sm:p-4 border border-primary/20 hover:border-primary/40 transition-colors">
+                <div className="flex flex-1 flex-col justify-between rounded bg-brand-red/5 p-2 sm:p-4 border border-brand-red/20 hover:border-brand-red/40 transition-colors">
                   <div className="flex items-center gap-1 sm:gap-2 text-[#a19db9]">
                     <span className="material-symbols-outlined text-sm sm:text-lg">
                       monetization_on
@@ -401,7 +401,7 @@ export default function GameInterface() {
                     ${gameStats.jackpot.toLocaleString()}
                   </p>
                 </div>
-                <div className="flex flex-1 flex-col justify-between rounded bg-[#1a1824] p-2 sm:p-4 border border-[#3f3b54]">
+                <div className="flex flex-1 flex-col justify-between rounded bg-brand-dark p-2 sm:p-4 border border-white/10">
                   <div className="flex items-center gap-1 sm:gap-2 text-[#a19db9]">
                     <span className="material-symbols-outlined text-sm sm:text-lg">
                       token
@@ -412,7 +412,7 @@ export default function GameInterface() {
                   </div>
                   <p className="tracking-tight text-base sm:text-xl lg:text-2xl font-bold mt-1 sm:mt-2">
                     {gameStats.attemptPrice > 0 ? (
-                      <span className="text-red-400">
+                      <span className="text-brand-red">
                         -{gameStats.attemptPrice.toFixed(2)} SOL
                       </span>
                     ) : (

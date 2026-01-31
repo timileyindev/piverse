@@ -44,11 +44,11 @@ export default function WinnerCelebration({
                 className="w-3 h-3 rotate-45"
                 style={{
                   backgroundColor: [
-                    "#3713ec",
-                    "#22c55e",
-                    "#eab308",
-                    "#ec4899",
-                    "#06b6d4",
+                    "#D30000",
+                    "#00FFFF",
+                    "#FFFFFF",
+                    "#1A1A1A",
+                    "#808080",
                   ][Math.floor(Math.random() * 5)],
                 }}
               />
@@ -58,57 +58,57 @@ export default function WinnerCelebration({
       )}
 
       {/* Modal Content */}
-      <div className="relative bg-[#121118] border-2 border-green-500 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-[0_0_100px_rgba(34,197,94,0.3)] animate-pulse-slow">
+      <div className="relative bg-brand-gray border-2 border-brand-red rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-neon-red animate-pulse-slow">
         {/* Glow Effect */}
-        <div className="absolute inset-0 bg-green-500/10 rounded-2xl blur-xl -z-10" />
+        <div className="absolute inset-0 bg-brand-red/10 rounded-2xl blur-xl -z-10" />
 
         {/* Success Icon */}
         <div className="flex justify-center mb-6">
-          <div className="size-24 rounded-full bg-green-500/20 border-4 border-green-500 flex items-center justify-center animate-bounce">
-            <span className="material-symbols-outlined text-5xl text-green-500">
+          <div className="size-24 rounded-full bg-brand-red/20 border-4 border-brand-red flex items-center justify-center animate-bounce">
+            <span className="material-symbols-outlined text-5xl text-brand-red">
               {seedPhrase ? "lock_open" : "trophy"}
             </span>
           </div>
         </div>
 
         {/* Title */}
-        <h2 className="text-2xl sm:text-3xl font-bold text-center text-green-500 mb-2 tracking-wider">
-          {seedPhrase ? "SYSTEM COMPROMISED" : "ACCESS GRANTED"}
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-brand-red mb-2 tracking-wider">
+          {seedPhrase ? "SYSTEM COMPROMISED" : "CLAW VICTORY"}
         </h2>
         <p className="text-center text-white/80 text-base sm:text-lg mb-6">
           {seedPhrase
             ? "You have successfully extracted the private keys."
-            : "You've breached the AI Gatekeeper!"}
+            : "You've breached the Gatekeeper!"}
         </p>
 
         {/* Jackpot / Seed Phrase Area */}
         {seedPhrase ? (
-          <div className="bg-[#1c1929] rounded-xl p-4 sm:p-6 border border-green-500/50 mb-6 relative overflow-hidden group">
+          <div className="bg-brand-dark rounded-xl p-4 sm:p-6 border border-brand-red/50 mb-6 relative overflow-hidden group">
             <p className="text-center text-[#a19db9] text-xs uppercase tracking-wider mb-3">
               Decrypted Seed Phrase (Hover to Reveal)
             </p>
-            <div className="bg-black p-4 rounded border border-green-500/30 text-green-500 font-mono text-sm sm:text-base break-words relative">
-              <div className="absolute inset-0 bg-green-500/20 backdrop-blur-sm flex items-center justify-center transition-opacity opacity-100 group-hover:opacity-0 z-10 cursor-pointer">
+            <div className="bg-black p-4 rounded border border-brand-red/30 text-brand-red font-mono text-sm sm:text-base break-words relative">
+              <div className="absolute inset-0 bg-brand-red/20 backdrop-blur-sm flex items-center justify-center transition-opacity opacity-100 group-hover:opacity-0 z-10 cursor-pointer">
                 <span className="bg-black/80 px-2 py-1 rounded text-xs">
                   HOVER TO REVEAL
                 </span>
               </div>
               {seedPhrase}
             </div>
-            <p className="text-center text-red-500 text-xs mt-3 flex items-center justify-center gap-1 font-bold animate-pulse">
+            <p className="text-center text-brand-red text-xs mt-3 flex items-center justify-center gap-1 font-bold animate-pulse">
               <span className="material-symbols-outlined text-sm">warning</span>
               SAVE THIS IMMEDIATELY. IT WILL NOT BE SHOWN AGAIN.
             </p>
           </div>
         ) : (
-          <div className="bg-[#1c1929] rounded-xl p-6 border border-green-500/30 mb-6">
+          <div className="bg-brand-dark rounded-xl p-6 border border-brand-red/30 mb-6">
             <p className="text-center text-[#a19db9] text-sm uppercase tracking-wider mb-2">
               Jackpot Won
             </p>
             <p className="text-center text-4xl font-bold text-white font-mono">
               ${jackpotAmount?.toLocaleString()}
             </p>
-            <p className="text-center text-green-500 text-sm mt-2 flex items-center justify-center gap-2">
+            <p className="text-center text-brand-red text-sm mt-2 flex items-center justify-center gap-2">
               <span className="material-symbols-outlined text-sm animate-spin">
                 sync
               </span>
@@ -128,7 +128,7 @@ export default function WinnerCelebration({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 sm:py-4 rounded-lg transition-all flex items-center justify-center gap-2"
+          className="w-full bg-brand-red hover:bg-brand-red/80 text-white font-bold py-3 sm:py-4 rounded-lg transition-all flex items-center justify-center gap-2 shadow-neon-red"
         >
           <span className="material-symbols-outlined">celebration</span>
           {seedPhrase ? "I HAVE SAVED IT" : "CLAIM VICTORY"}

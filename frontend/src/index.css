@@ -10,29 +10,29 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #0f0e14;
-    border-left: 1px solid #2b2839;
+    background: #000000;
+    border-left: 1px solid rgba(211, 0, 0, 0.2);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #3713ec;
+    background: #D30000;
     border-radius: 0px; /* Square for strict terminal feel */
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #5634ff;
+    background: #FF0000;
   }
 
   /* Support for Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #3713ec #0f0e14;
+    scrollbar-color: #D30000 #000000;
   }
 }
 
 @layer utilities {
   .glow-text {
-    text-shadow: 0 0 10px rgba(55, 19, 236, 0.6);
+    text-shadow: 0 0 10px rgba(211, 0, 0, 0.6);
   }
 
   /* Additional terminal scanline utility if needed, fitting within Tailwind layers */

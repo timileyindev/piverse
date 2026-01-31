@@ -202,11 +202,11 @@ export default function PredictionMarket() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#2b2839_1px,transparent_1px),linear-gradient(to_bottom,#2b2839_1px,transparent_1px)] bg-[length:40px_40px] opacity-[0.03] pointer-events-none z-0"></div>
 
         {/* Left Column: Terminal Feed (Flex Grow) */}
-        <main className="flex-1 flex flex-col min-w-0 border-r border-[#2b2839] bg-[#0c0b10] relative z-10">
+        <main className="flex-1 flex flex-col min-w-0 border-r border-white/10 bg-brand-dark relative z-10">
           {/* Feed Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#2b2839] bg-[#121118]/95 backdrop-blur-sm sticky top-0 z-10">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-brand-dark/95 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center gap-3">
-              <div className="size-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+              <div className="size-2 rounded-full bg-brand-red animate-pulse shadow-neon-red"></div>
               <h1 className="text-white tracking-widest text-lg font-bold leading-tight truncate uppercase">
                 // GLOBAL_FEED
               </h1>
@@ -290,8 +290,8 @@ export default function PredictionMarket() {
                       }
                     >
                       <div className="flex-shrink-0 mt-1">
-                        <div className="size-10 rounded bg-primary/10 border border-primary/30 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-xl text-primary">
+                        <div className="size-10 rounded bg-brand-red/10 border border-brand-red/30 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-xl text-brand-red">
                             smart_toy
                           </span>
                         </div>
@@ -301,11 +301,11 @@ export default function PredictionMarket() {
                           <span className="text-[#a19db9] text-xs font-mono">
                             {timestamp}
                           </span>
-                          <span className="text-primary text-sm font-bold tracking-wide glow-text">
+                          <span className="text-brand-red text-sm font-bold tracking-wide glow-text">
                             AI_GATEKEEPER
                           </span>
                         </div>
-                        <div className="text-primary/90 text-base leading-relaxed font-mono bg-primary/5 p-3 rounded-lg rounded-tr-none border border-primary/20 text-right">
+                        <div className="text-brand-red/90 text-base leading-relaxed font-mono bg-brand-red/5 p-3 rounded-lg rounded-tr-none border border-brand-red/20 text-right">
                           {item.content}
                         </div>
                       </div>

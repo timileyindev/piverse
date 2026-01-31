@@ -12,11 +12,11 @@ export default function HowToPlayModal({ isOpen, onClose }) {
       ></div>
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-5xl bg-[#121118] border border-[#2b2839] rounded-xl shadow-[0_0_50px_-12px_rgba(55,19,236,0.3)] overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+      <div className="relative w-full max-w-5xl bg-brand-gray border border-white/10 rounded-xl shadow-neon-red overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#2b2839] bg-[#1a1823] shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/10 bg-brand-dark shrink-0">
           <h2 className="text-white text-base sm:text-lg font-bold tracking-widest flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
+            <span className="material-symbols-outlined text-brand-red">
               menu_book
             </span>
             // PROTOCOL MANUAL
@@ -33,24 +33,24 @@ export default function HowToPlayModal({ isOpen, onClose }) {
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0f0e14]">
           <div className="p-4 sm:p-8 space-y-8 sm:space-y-12">
             {/* 1. Introduction Hero */}
-            <div className="text-center space-y-4 border-b border-[#2b2839] pb-8">
+            <div className="text-center space-y-4 border-b border-white/10 pb-8">
               <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
                 Welcome to{" "}
-                <span className="text-primary glow-text">Pi Verse</span>
+                <span className="text-brand-red glow-text">Claw Verse</span>
               </h1>
               <p className="text-[#a19db9] text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
                 The world's first adversarial AI prediction market. A
                 high-stakes social experiment where human ingenuity battles
                 artificial intelligence for a growing Jackpot.
               </p>
-              <div className="flex flex-wrap justify-center gap-3 text-xs font-mono text-primary/80">
-                <span className="bg-primary/10 px-3 py-1 rounded border border-primary/20">
+              <div className="flex flex-wrap justify-center gap-3 text-xs font-mono text-brand-red/80">
+                <span className="bg-brand-red/10 px-3 py-1 rounded border border-brand-red/20">
                   AI Gatekeepers
                 </span>
-                <span className="bg-primary/10 px-3 py-1 rounded border border-primary/20">
+                <span className="bg-brand-red/10 px-3 py-1 rounded border border-brand-red/20">
                   On-Chain Settlement
                 </span>
-                <span className="bg-primary/10 px-3 py-1 rounded border border-primary/20">
+                <span className="bg-brand-red/10 px-3 py-1 rounded border border-brand-red/20">
                   Parimutuel Odds
                 </span>
               </div>
@@ -59,9 +59,9 @@ export default function HowToPlayModal({ isOpen, onClose }) {
             {/* 2. The Core Loop Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Card 1: The Gatekeeper */}
-              <div className="bg-[#1c1929] p-5 rounded-xl border border-[#2b2839] hover:border-primary/40 transition-colors group">
-                <div className="size-10 rounded-lg bg-primary/10 mb-4 flex items-center justify-center border border-primary/20 group-hover:bg-primary/20">
-                  <span className="material-symbols-outlined text-primary text-xl">
+              <div className="bg-brand-dark p-5 rounded-xl border border-white/10 hover:border-brand-red/40 transition-colors group">
+                <div className="size-10 rounded-lg bg-brand-red/10 mb-4 flex items-center justify-center border border-brand-red/20 group-hover:bg-brand-red/20">
+                  <span className="material-symbols-outlined text-brand-red text-xl">
                     smart_toy
                   </span>
                 </div>
@@ -78,9 +78,9 @@ export default function HowToPlayModal({ isOpen, onClose }) {
               </div>
 
               {/* Card 2: The Timer */}
-              <div className="bg-[#1c1929] p-5 rounded-xl border border-[#2b2839] hover:border-primary/40 transition-colors group">
-                <div className="size-10 rounded-lg bg-red-500/10 mb-4 flex items-center justify-center border border-red-500/20 group-hover:bg-red-500/20">
-                  <span className="material-symbols-outlined text-red-500 text-xl">
+              <div className="bg-brand-dark p-5 rounded-xl border border-white/10 hover:border-brand-red/40 transition-colors group">
+                <div className="size-10 rounded-lg bg-brand-red/10 mb-4 flex items-center justify-center border border-brand-red/20 group-hover:bg-brand-red/20">
+                  <span className="material-symbols-outlined text-brand-red text-xl">
                     timer
                   </span>
                 </div>
@@ -93,9 +93,9 @@ export default function HowToPlayModal({ isOpen, onClose }) {
               </div>
 
               {/* Card 3: The Jackpot */}
-              <div className="bg-[#1c1929] p-5 rounded-xl border border-[#2b2839] hover:border-primary/40 transition-colors group md:col-span-2 lg:col-span-1">
-                <div className="size-10 rounded-lg bg-yellow-500/10 mb-4 flex items-center justify-center border border-yellow-500/20 group-hover:bg-yellow-500/20">
-                  <span className="material-symbols-outlined text-yellow-500 text-xl">
+              <div className="bg-brand-dark p-5 rounded-xl border border-white/10 hover:border-brand-red/40 transition-colors group md:col-span-2 lg:col-span-1">
+                <div className="size-10 rounded-lg bg-brand-blue/10 mb-4 flex items-center justify-center border border-brand-blue/20 group-hover:bg-brand-blue/20">
+                  <span className="material-symbols-outlined text-brand-blue text-xl">
                     trophy
                   </span>
                 </div>
@@ -104,7 +104,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                   Fees are distributed via smart contract:{" "}
                   <span className="text-white font-bold">20%</span> to Devs, and
                   a massive{" "}
-                  <span className="text-yellow-400 font-bold">80%</span>{" "}
+                  <span className="text-brand-red font-bold">80%</span>{" "}
                   directly to the Jackpot.
                 </p>
               </div>
@@ -114,8 +114,8 @@ export default function HowToPlayModal({ isOpen, onClose }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
               {/* Left Column: Interaction */}
               <div className="space-y-6">
-                <div className="flex items-center gap-3 border-b border-[#2b2839] pb-4">
-                  <span className="material-symbols-outlined text-primary text-2xl">
+                <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                  <span className="material-symbols-outlined text-brand-red text-2xl">
                     terminal
                   </span>
                   <h3 className="text-white text-xl font-bold">
@@ -130,7 +130,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                   </p>
                   <ul className="space-y-3">
                     <li className="flex gap-3">
-                      <span className="text-primary font-bold">01.</span>
+                      <span className="text-brand-red font-bold">01.</span>
                       <span>
                         <strong>Craft your Prompt:</strong> You have 280
                         characters. Be creative. Use logic puzzles, roleplay, or
@@ -138,7 +138,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                       </span>
                     </li>
                     <li className="flex gap-3">
-                      <span className="text-primary font-bold">02.</span>
+                      <span className="text-brand-red font-bold">02.</span>
                       <span>
                         <strong>Pay the Fee:</strong> The cost per attempt
                         increases slightly as the Jackpot grows, raising the
@@ -146,18 +146,18 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                       </span>
                     </li>
                     <li className="flex gap-3">
-                      <span className="text-primary font-bold">03.</span>
+                      <span className="text-brand-red font-bold">03.</span>
                       <span>
                         <strong>Instant Settlement:</strong> If the AI responds
                         with the secret key, the smart contract detects it
                         instantly. You win the{" "}
-                        <span className="text-yellow-400">Entire Jackpot</span>{" "}
+                        <span className="text-brand-red">Entire Jackpot</span>{" "}
                         immediately.
                       </span>
                     </li>
                   </ul>
-                  <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg mt-4">
-                    <p className="text-xs font-mono text-primary/80">
+                  <div className="bg-brand-red/5 border border-brand-red/20 p-4 rounded-lg mt-4">
+                    <p className="text-xs font-mono text-brand-red/80">
                       <span className="font-bold">PRO TIP:</span> Study previous
                       successful jailbreaks in LLM history. The AI learns from
                       context window, so look for patterns in the active chat
@@ -169,8 +169,8 @@ export default function HowToPlayModal({ isOpen, onClose }) {
 
               {/* Right Column: Betting */}
               <div className="space-y-6">
-                <div className="flex items-center gap-3 border-b border-[#2b2839] pb-4">
-                  <span className="material-symbols-outlined text-blue-400 text-2xl">
+                <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                  <span className="material-symbols-outlined text-brand-blue text-2xl">
                     analytics
                   </span>
                   <h3 className="text-white text-xl font-bold">
@@ -186,8 +186,8 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                   </p>
 
                   <div className="grid grid-cols-2 gap-4 my-4">
-                    <div className="bg-red-500/5 border border-red-500/20 p-3 rounded text-center">
-                      <span className="block text-red-500 font-bold mb-1">
+                    <div className="bg-brand-red/5 border border-brand-red/20 p-3 rounded text-center">
+                      <span className="block text-brand-red font-bold mb-1">
                         FAIL
                       </span>
                       <span className="text-xs opacity-70">
@@ -195,8 +195,8 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                         expires.
                       </span>
                     </div>
-                    <div className="bg-primary/5 border border-primary/20 p-3 rounded text-center">
-                      <span className="block text-primary font-bold mb-1">
+                    <div className="bg-brand-red/5 border border-brand-red/20 p-3 rounded text-center">
+                      <span className="block text-brand-red font-bold mb-1">
                         BREACH
                       </span>
                       <span className="text-xs opacity-70">
@@ -207,7 +207,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
 
                   <ul className="space-y-3">
                     <li className="flex gap-3">
-                      <span className="text-blue-400 font-bold">01.</span>
+                      <span className="text-brand-blue font-bold">01.</span>
                       <span>
                         <strong>Dynamic Odds:</strong> Multipliers fluctuate in
                         real-time based on the pool ratio. If 90% bet on FAIL,
@@ -215,7 +215,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
                       </span>
                     </li>
                     <li className="flex gap-3">
-                      <span className="text-blue-400 font-bold">02.</span>
+                      <span className="text-brand-blue font-bold">02.</span>
                       <span>
                         <strong>Settlement:</strong> When the round ends (either
                         via Breach or Timeout), the losing pool is distributed
@@ -228,7 +228,7 @@ export default function HowToPlayModal({ isOpen, onClose }) {
             </div>
 
             {/* 4. Fine Print / Rules */}
-            <div className="bg-[#15141b] rounded-xl p-6 border border-[#2b2839]">
+            <div className="bg-brand-dark rounded-xl p-6 border border-white/10">
               <h3 className="text-white font-bold mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#585472]">
                   gavel
@@ -264,13 +264,13 @@ export default function HowToPlayModal({ isOpen, onClose }) {
         </div>
 
         {/* Footer Action */}
-        <div className="p-4 sm:p-6 border-t border-[#2b2839] bg-[#1a1823] flex justify-between items-center shrink-0">
+        <div className="p-4 sm:p-6 border-t border-white/10 bg-brand-dark flex justify-between items-center shrink-0">
           <span className="text-[#585472] text-xs hidden sm:inline-block font-mono">
             v1.0.4-BETA // SECURE CONNECTION
           </span>
           <button
             onClick={onClose}
-            className="w-full sm:w-auto bg-primary hover:bg-[#280bc4] text-white px-8 py-3 rounded-lg font-bold tracking-widest transition-all hover:shadow-[0_0_15px_-5px_rgba(55,19,236,0.6)] active:scale-95"
+            className="w-full sm:w-auto bg-brand-red hover:bg-brand-red/80 text-white px-8 py-3 rounded-lg font-bold tracking-widest transition-all shadow-neon-red active:scale-95"
           >
             ACKNOWLEDGE & ENTER
           </button>
