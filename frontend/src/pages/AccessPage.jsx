@@ -54,7 +54,7 @@ export default function AccessPage({ onEnter }) {
           <div className="flex items-center gap-2 sm:gap-3 text-white">
             <div className="size-5 sm:size-6 flex items-center justify-center">
               <img
-                src="/assets/hero.jpg"
+                src="/assets/hero.png"
                 alt="Claw Verse Logo"
                 className="w-full h-full object-contain rounded-full"
               />
@@ -89,7 +89,7 @@ export default function AccessPage({ onEnter }) {
           {/* Hero Section */}
           <div className="flex flex-col items-center mb-8">
             <img 
-              src="/assets/crab-brain.jpg" 
+              src="/assets/crab-brain.png" 
               alt="Claw Verse AI" 
               className="w-48 h-48 object-cover rounded-2xl border-2 border-brand-red shadow-neon-red mb-6"
             />
@@ -109,7 +109,7 @@ export default function AccessPage({ onEnter }) {
           {/* Socials & Contract Info */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-6 sm:mb-8 font-mono text-xs sm:text-sm">
             <a
-              href="https://x.com/clawverse"
+              href="https://x.com/clawdotverse"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-brand-dark text-white px-3 py-2 rounded border border-white/10 hover:border-brand-red hover:bg-brand-red/5 hover:text-brand-red transition-all duration-300 group"
@@ -121,7 +121,7 @@ export default function AccessPage({ onEnter }) {
               >
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
               </svg>
-              <span className="font-bold tracking-wide">@clawverse</span>
+              <span className="font-bold tracking-wide">@clawdotverse</span>
             </a>
 
             <div

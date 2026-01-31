@@ -19,7 +19,7 @@ export default function Header() {
       <div className="flex items-center gap-3 sm:gap-4 text-white">
         <div className="size-8 sm:size-10 flex items-center justify-center">
           <img
-            src="/assets/hero.jpg"
+            src="/assets/hero.png"
             alt="Claw Verse Logo"
             className="w-full h-full object-contain rounded-full shadow-neon-red"
           />
