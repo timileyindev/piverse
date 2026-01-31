@@ -589,7 +589,7 @@ export default function GameInterface() {
 
                   <span className="md:hidden">&nbsp;</span>
                   <span className="hidden sm:inline text-xs sm:text-sm">
-                    user@pi-verse:~$ &nbsp;
+                    user@claw-verse:~$ &nbsp;
                   </span>
                 </div>
                 <input
